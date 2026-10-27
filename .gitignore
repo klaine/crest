@@ -1,0 +1,17 @@
+# Build outputs (scripts/build.sh). The module package is attached to a release, not committed.
+build/
+crest-module.tar.gz
+modules/sound_generators/crest/*
+!modules/sound_generators/crest/.gitkeep
+*.so.o
+
+# Regenerable and local files
+__pycache__/
+*.pyc
+.DS_Store
+.claude/
+
+# Novation's Peak manual and SysEx banks: reference material, not ours to redistribute.
+# tools/peak/import_banks.py reads them; the converted presets/peak/*.json are committed.
+reference_novation/
+presets/peak/

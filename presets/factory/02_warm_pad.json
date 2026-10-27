@@ -1,0 +1,33 @@
+{
+ "name": "Warm Pad",
+ "values": {
+  "o1_wave": "Saw",
+  "o2_wave": "Saw",
+  "o2_fine": 12,
+  "o3_wave": "Tri",
+  "o3_coarse": -12,
+  "mx_o1": 0.9,
+  "mx_o2": 0.8,
+  "mx_o3": 0.6,
+  "flt_type": "LP24",
+  "flt_cut": 0.5,
+  "flt_res": 0.15,
+  "flt_env": 0.35,
+  "flt_key": 0.6,
+  "m1_a": 0.7,
+  "m1_d": 0.7,
+  "m1_s": 0.5,
+  "m1_r": 0.7,
+  "ae_a": 0.72,
+  "ae_d": 0.7,
+  "ae_s": 0.85,
+  "ae_r": 0.8,
+  "cho_lvl": 0.45,
+  "cho_type": "Ensemble",
+  "cho_depth": 0.5,
+  "rev_lvl": 0.4,
+  "rev_decay": 0.65,
+  "rev_type": "Hall",
+  "patch_vol": 0.6
+ }
+}

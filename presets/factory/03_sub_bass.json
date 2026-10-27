@@ -1,0 +1,31 @@
+{
+ "name": "Sub Bass",
+ "values": {
+  "v_mode": "Mono",
+  "v_glide": 0.25,
+  "v_gmode": "Legato",
+  "o1_wave": "Saw",
+  "o1_coarse": -12,
+  "o2_wave": "Pulse",
+  "o2_shape": 0.3,
+  "o2_coarse": -12,
+  "mx_o1": 1.0,
+  "mx_o2": 0.8,
+  "flt_type": "LP24",
+  "flt_cut": 0.33,
+  "flt_res": 0.3,
+  "flt_drive": 0.3,
+  "flt_env": 0.4,
+  "flt_key": 0.3,
+  "m1_a": 0.0,
+  "m1_d": 0.5,
+  "m1_s": 0.0,
+  "ae_a": 0.0,
+  "ae_d": 0.6,
+  "ae_s": 0.85,
+  "ae_r": 0.35,
+  "dst_lvl": 0.12,
+  "dst_type": "Soft",
+  "patch_vol": 0.9
+ }
+}

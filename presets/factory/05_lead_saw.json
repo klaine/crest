@@ -1,0 +1,31 @@
+{
+ "name": "Lead Saw",
+ "values": {
+  "v_mode": "MonoLG",
+  "v_glide": 0.18,
+  "v_gmode": "Always",
+  "o1_wave": "Saw",
+  "o2_wave": "Saw",
+  "o2_fine": 7,
+  "o2_coarse": 0,
+  "mx_o1": 1.0,
+  "mx_o2": 0.7,
+  "flt_type": "LP24",
+  "flt_cut": 0.68,
+  "flt_res": 0.3,
+  "flt_env": 0.2,
+  "flt_key": 0.7,
+  "m1_a": 0.0,
+  "m1_d": 0.6,
+  "m1_s": 0.4,
+  "ae_a": 0.03,
+  "ae_d": 0.6,
+  "ae_s": 0.85,
+  "ae_r": 0.45,
+  "dly_lvl": 0.3,
+  "dly_sync": "1/8D",
+  "dly_fb": 0.4,
+  "rev_lvl": 0.2,
+  "rev_decay": 0.5
+ }
+}

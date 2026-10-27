@@ -1,0 +1,30 @@
+{
+ "name": "Pluck Keys",
+ "values": {
+  "o1_wave": "Saw",
+  "o2_wave": "Pulse",
+  "o2_shape": 0.4,
+  "o2_fine": 5,
+  "mx_o1": 1.0,
+  "mx_o2": 0.6,
+  "flt_type": "LP12",
+  "flt_cut": 0.42,
+  "flt_res": 0.25,
+  "flt_env": 0.65,
+  "flt_vel": 0.35,
+  "flt_key": 0.6,
+  "m1_a": 0.0,
+  "m1_d": 0.55,
+  "m1_s": 0.0,
+  "ae_a": 0.0,
+  "ae_d": 0.62,
+  "ae_s": 0.0,
+  "ae_r": 0.5,
+  "ae_vel": 0.6,
+  "rev_lvl": 0.25,
+  "rev_decay": 0.4,
+  "dly_lvl": 0.2,
+  "dly_sync": "1/8",
+  "dly_fb": 0.3
+ }
+}

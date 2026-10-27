@@ -1,0 +1,24 @@
+{
+ "name": "Hollow Triangle",
+ "values": {
+  "o1_wave": "Tri",
+  "o1_shape": 0.3,
+  "o2_wave": "Sine",
+  "o2_coarse": 12,
+  "mx_o1": 0.9,
+  "mx_o2": 0.4,
+  "flt_type": "LP12",
+  "flt_cut": 0.6,
+  "flt_res": 0.1,
+  "flt_key": 0.6,
+  "ae_a": 0.1,
+  "ae_d": 0.6,
+  "ae_s": 0.8,
+  "ae_r": 0.55,
+  "cho_lvl": 0.4,
+  "cho_type": "Chorus 2",
+  "cho_rate": 0.2,
+  "rev_lvl": 0.3,
+  "rev_decay": 0.55
+ }
+}

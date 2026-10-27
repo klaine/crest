@@ -1,0 +1,32 @@
+{
+ "name": "Pulse Brass",
+ "values": {
+  "o1_wave": "Pulse",
+  "o1_shape": 0.35,
+  "o2_wave": "Pulse",
+  "o2_shape": 0.2,
+  "o2_fine": 8,
+  "o3_wave": "Saw",
+  "o3_coarse": -12,
+  "mx_o1": 0.8,
+  "mx_o2": 0.8,
+  "mx_o3": 0.6,
+  "flt_type": "LP24",
+  "flt_cut": 0.38,
+  "flt_res": 0.15,
+  "flt_env": 0.55,
+  "flt_vel": 0.4,
+  "flt_key": 0.5,
+  "m1_a": 0.45,
+  "m1_d": 0.6,
+  "m1_s": 0.6,
+  "m1_r": 0.4,
+  "ae_a": 0.38,
+  "ae_d": 0.6,
+  "ae_s": 0.85,
+  "ae_r": 0.4,
+  "cho_lvl": 0.3,
+  "cho_type": "Chorus 1",
+  "rev_lvl": 0.2
+ }
+}

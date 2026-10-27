@@ -1,0 +1,24 @@
+{
+ "name": "Ring Bell",
+ "values": {
+  "o1_wave": "Sine",
+  "o2_wave": "Sine",
+  "o2_coarse": 7,
+  "o2_fine": 3,
+  "mx_o1": 0.35,
+  "mx_o2": 0.0,
+  "mx_ring": 0.85,
+  "flt_type": "LP12",
+  "flt_cut": 1.0,
+  "flt_key": 0.0,
+  "ae_a": 0.0,
+  "ae_d": 0.78,
+  "ae_s": 0.0,
+  "ae_r": 0.62,
+  "ae_vel": 0.5,
+  "rev_lvl": 0.45,
+  "rev_type": "Plate",
+  "rev_decay": 0.7,
+  "patch_vol": 0.8
+ }
+}

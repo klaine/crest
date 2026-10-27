@@ -1,0 +1,18 @@
+{
+  "id": "crest",
+  "name": "Crest",
+  "abbrev": "CRST",
+  "version": "0.1.0",
+  "api_version": 2,
+  "description": "8-voice hybrid polysynth: 3 oscillators, multimode filter, envelopes and effects",
+  "author": "AI & Klaine",
+  "dsp": "dsp.so",
+  "component_type": "sound_generator",
+  "capabilities": {
+    "chainable": true,
+    "midi_in": true,
+    "audio_out": true,
+    "aftertouch": true,
+    "default_forward_channel": -2
+  }
+}

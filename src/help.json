@@ -1,0 +1,322 @@
+{
+  "title": "Crest",
+  "children": [
+    {
+      "title": "Overview",
+      "lines": [
+        "Crest is an 8-voice",
+        "hybrid polysynth",
+        "after the Novation",
+        "Peak: 3 oscillators,",
+        "a multimode filter,",
+        "3 envelopes, 4 LFOs,",
+        "a 20-slot mod",
+        "matrix, an",
+        "arpeggiator and 4",
+        "effects.",
+        "",
+        "The first page draws",
+        "the filter and amp",
+        "envelope. Jog turns",
+        "pages; Shift+jog-",
+        "click opens the",
+        "section picker."
+      ]
+    },
+    {
+      "title": "Patches",
+      "lines": [
+        "11 patches: Init and",
+        "10 Crest patches.",
+        "",
+        "Load your own Peak",
+        "banks on the Peak",
+        "Banks page (.syx in",
+        "UserLibrary/Crest).",
+        "",
+        "The Patches page",
+        "shows the bank and",
+        "position. Click to",
+        "browse, jog to pick."
+      ]
+    },
+    {
+      "title": "Oscillators",
+      "lines": [
+        "Wave: Sine Tri Saw",
+        "Pulse or Wavetable",
+        "(17 tables).",
+        "",
+        "Shape bends the",
+        "wave: pulse width,",
+        "double saw, tri",
+        "slope, sine fold,",
+        "wavetable frame.",
+        "",
+        "Density stacks 3",
+        "detuned copies;",
+        "DnDet sets their",
+        "spread.",
+        "",
+        "VSync is virtual",
+        "sync, up to 16x.",
+        "",
+        "Coarse +-36 st, Fine",
+        "+-100 ct. Fixed",
+        "plays one note on",
+        "every key."
+      ]
+    },
+    {
+      "title": "Osc Modulation",
+      "lines": [
+        "ShSrc picks Mod Env",
+        "1 or LFO 1 to move",
+        "the shape; ShMod is",
+        "how far.",
+        "",
+        "PEnv: Mod Env 2 to",
+        "pitch, up to 8",
+        "octaves.",
+        "",
+        "PLfo: LFO 2 to pitch",
+        "(vibrato)."
+      ]
+    },
+    {
+      "title": "FM",
+      "lines": [
+        "FM page: Osc1>Osc2,",
+        "Osc2>Osc3, Osc3>Osc1",
+        "and Noise>Osc1 phase",
+        "modulation.",
+        "",
+        "Same pitch gives",
+        "bells and growls; FM",
+        "never detunes the",
+        "carrier.",
+        "",
+        "O3Fl and NsFl run",
+        "Osc 3 or noise into",
+        "the cutoff at audio",
+        "rate."
+      ]
+    },
+    {
+      "title": "Mixer",
+      "lines": [
+        "Levels for Osc 1-3,",
+        "Ring (Osc1 x Osc2)",
+        "and Noise. NCol",
+        "tilts the noise dark",
+        "or bright.",
+        "",
+        "PreOD drives the",
+        "filter input; PstDs",
+        "distorts after the",
+        "filter."
+      ]
+    },
+    {
+      "title": "Filter",
+      "lines": [
+        "Types: LP24 LP12",
+        "BP12 BP6 HP24 HP12.",
+        "Res near the top",
+        "self-oscillates.",
+        "",
+        "Env1: Mod Env 1 to",
+        "cutoff. AEnv: Amp",
+        "Env to cutoff. LFO1,",
+        "KeyTk and Vel too.",
+        "",
+        "FDiv gives each",
+        "voice its own cutoff",
+        "offset."
+      ]
+    },
+    {
+      "title": "Envelopes",
+      "lines": [
+        "Amp, Mod 1 and Mod",
+        "2: attack, hold,",
+        "decay, sustain,",
+        "release, velocity",
+        "(- = softer when",
+        "hit harder).",
+        "",
+        "Rpt repeats attack,",
+        "hold and decay",
+        "(127 = loop).",
+        "",
+        "Trig in Mono and",
+        "MonoLG: Multi",
+        "retriggers, Single",
+        "keeps running",
+        "legato, Reset starts",
+        "from zero.",
+        "",
+        "Delays: own page."
+      ]
+    },
+    {
+      "title": "LFOs",
+      "lines": [
+        "LFO 1-2 run per",
+        "voice, 3-4 are",
+        "shared. Range Low",
+        "to 200 Hz, High to",
+        "1.6 kHz (capped at",
+        "1.24 kHz), or sync.",
+        "",
+        "Mode: Free, Key",
+        "(restart per note),",
+        "Common (one phase),",
+        "CommonKey (one",
+        "phase, restarts).",
+        "Rpt: cycles, then",
+        "stop (1 = one-shot).",
+        "",
+        "Fade page: Fade",
+        "Time, Fade Mode",
+        "(in, out, gate in,",
+        "gate out), Delay,",
+        "MonoTrig (legato).",
+        "Slew smooths it."
+      ]
+    },
+    {
+      "title": "Mod Matrix",
+      "lines": [
+        "20 slots: Source 1 x",
+        "Source 2 >",
+        "Destination, with a",
+        "signed depth.",
+        "",
+        "Pick a slot in the",
+        "list, then set Src1",
+        "Src2 Dest Depth.",
+        "Clear empties it.",
+        "",
+        "Sources include LFO",
+        "1-4 (bipolar or +",
+        "unipolar),",
+        "envelopes, wheel,",
+        "aftertouch, Animate",
+        "1-2 and the macros."
+      ]
+    },
+    {
+      "title": "Macros & Animate",
+      "lines": [
+        "8 macros each move",
+        "up to 4 destinations",
+        "by their own",
+        "amounts.",
+        "",
+        "Animate 1 and 2 are",
+        "mod sources you",
+        "switch: Hold while",
+        "held, Latch toggles.",
+        "CC 80 and 81 play",
+        "them."
+      ]
+    },
+    {
+      "title": "Voice",
+      "lines": [
+        "Mode: Poly, Poly2",
+        "(new voice per",
+        "note), Mono, MonoLG",
+        "(legato), Mono2.",
+        "",
+        "Unison up to 8",
+        "voices with detune",
+        "and stereo spread.",
+        "",
+        "Glide always or",
+        "legato only. Dvrg",
+        "and Drift add analog",
+        "looseness."
+      ]
+    },
+    {
+      "title": "Arpeggiator",
+      "lines": [
+        "Arp On on the",
+        "Perform page. Modes:",
+        "Up Down UpDown",
+        "UpDown2 Played",
+        "Random Chord.",
+        "",
+        "Rate from 2 bars to",
+        "1/32T, Gate, Swing,",
+        "up to 6 octaves and",
+        "33 rhythms.",
+        "",
+        "Latch holds the",
+        "notes; KSync",
+        "restarts on the",
+        "first key. Follows",
+        "Move's tempo."
+      ]
+    },
+    {
+      "title": "Effects",
+      "lines": [
+        "Distortion first,",
+        "then Chorus, Delay",
+        "and Reverb in the",
+        "Route order (or in",
+        "parallel).",
+        "",
+        "Dry and Wet blend",
+        "the chain. Delay",
+        "syncs to tempo;",
+        "reverb has Room,",
+        "Hall and Plate."
+      ]
+    },
+    {
+      "title": "Peak Banks",
+      "lines": [
+        "Your own Novation",
+        "Peak banks: copy a",
+        ".syx file to",
+        "UserLibrary/Crest",
+        "(any subfolder",
+        "works), then open it",
+        "with Peak",
+        "Bank on the Peak",
+        "Banks page.",
+        "",
+        "Turn Peak Patch to",
+        "load a patch. Crest",
+        "sets its level in",
+        "the background; it",
+        "may jump once.",
+        "",
+        "The patch is saved",
+        "with the set, the",
+        "bank is not."
+      ]
+    },
+    {
+      "title": "Tips",
+      "lines": [
+        "Touch a knob to see",
+        "its value in real",
+        "units on the card.",
+        "",
+        "Start from a Peak",
+        "patch, then lower",
+        "Cut and raise Env1",
+        "for a quick pluck.",
+        "",
+        "Turn Animate on in a",
+        "patch to hear its",
+        "performance move."
+      ]
+    }
+  ]
+}

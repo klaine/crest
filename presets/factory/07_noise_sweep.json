@@ -1,0 +1,25 @@
+{
+ "name": "Noise Sweep",
+ "values": {
+  "o1_wave": "Sine",
+  "mx_o1": 0.0,
+  "mx_noise": 1.0,
+  "flt_type": "BP12",
+  "flt_cut": 0.25,
+  "flt_res": 0.7,
+  "flt_env": 0.85,
+  "flt_key": 0.0,
+  "m1_a": 0.82,
+  "m1_d": 0.85,
+  "m1_s": 0.6,
+  "m1_r": 0.8,
+  "ae_a": 0.7,
+  "ae_d": 0.8,
+  "ae_s": 0.85,
+  "ae_r": 0.85,
+  "rev_lvl": 0.45,
+  "rev_decay": 0.7,
+  "cho_lvl": 0.3,
+  "patch_vol": 0.85
+ }
+}

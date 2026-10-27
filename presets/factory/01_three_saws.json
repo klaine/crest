@@ -1,0 +1,29 @@
+{
+ "name": "Three Saws",
+ "values": {
+  "o1_wave": "Saw",
+  "o2_wave": "Saw",
+  "o2_fine": 9,
+  "o3_wave": "Saw",
+  "o3_coarse": -12,
+  "o3_fine": -7,
+  "mx_o1": 0.9,
+  "mx_o2": 0.8,
+  "mx_o3": 0.7,
+  "flt_type": "LP24",
+  "flt_cut": 0.6,
+  "flt_res": 0.2,
+  "flt_env": 0.45,
+  "flt_key": 0.5,
+  "m1_a": 0.0,
+  "m1_d": 0.55,
+  "m1_s": 0.15,
+  "ae_a": 0.02,
+  "ae_d": 0.6,
+  "ae_s": 0.8,
+  "ae_r": 0.5,
+  "rev_lvl": 0.2,
+  "rev_decay": 0.4,
+  "patch_vol": 0.65
+ }
+}

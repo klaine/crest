@@ -1,0 +1,33 @@
+{
+ "name": "Dirty Bass",
+ "values": {
+  "v_mode": "Mono",
+  "o1_wave": "Saw",
+  "o1_coarse": -12,
+  "o2_wave": "Saw",
+  "o2_coarse": -12,
+  "o2_fine": -9,
+  "o3_wave": "Pulse",
+  "o3_coarse": -24,
+  "mx_o1": 1.0,
+  "mx_o2": 0.8,
+  "mx_o3": 0.7,
+  "flt_type": "LP24",
+  "flt_cut": 0.3,
+  "flt_res": 0.55,
+  "flt_drive": 0.8,
+  "flt_env": 0.5,
+  "m1_a": 0.0,
+  "m1_d": 0.45,
+  "m1_s": 0.1,
+  "ae_a": 0.0,
+  "ae_d": 0.55,
+  "ae_s": 0.9,
+  "ae_r": 0.25,
+  "dst_lvl": 0.45,
+  "dst_type": "Hard",
+  "dst_tone": 0.55,
+  "dst_mix": 0.8,
+  "patch_vol": 0.85
+ }
+}
