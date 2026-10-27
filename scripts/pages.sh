@@ -5,7 +5,7 @@
 #
 # The branch is written with git plumbing, so the working tree and the current branch are left
 # alone. It holds one commit with no history (index.html and .nojekyll), replaced only when the
-# file changes, so a 7 MB file doesn't pile up per build; that's why the push is forced.
+# file changes, so a multi-MB file doesn't pile up per build; that's why the push is forced.
 # crest.html is the shareable single file: build_single.py has already refused Peak patches and
 # build paths in it.
 set -eu

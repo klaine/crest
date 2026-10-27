@@ -1,4 +1,4 @@
-/* Playing the browser engine: on-screen keys (higher on a key = softer), the computer keyboard
+/* Playing the browser engine: on-screen keys (velocity slider), the computer keyboard
  * (A..K row, Z/X octave), mod wheel and pitch bend strips, Web MIDI input, and the transport that
  * clocks tempo-synced LFOs, the delay and the arpeggiator. Only built in the standalone page. */
 import { h } from "./controls.js";
@@ -16,37 +16,71 @@ export function buildPlayer(link) {
   const allOff = () => { for (const n of [...down.keys()]) noteOff(n); };
 
   const kb = h("div", { class: "keys", role: "group", "aria-label": "Keyboard" });
+  const vel = h("input", { type: "range", min: 1, max: 127, value: 100, "aria-label": "Velocity" });
+  /* As many octaves as the width holds (about 34px a white key), like Bizar's on-screen keyboard. */
   function build() {
     kb.textContent = "";
     keys.length = 0;
-    const first = 12 * (octave + 1);
-    for (let i = 0; i < 25; i++) {
-      const n = first + i, black = [1, 3, 6, 8, 10].includes(n % 12);
-      const k = h("div", { class: "key" + (black ? " black" : ""), "data-note": n },
-        !black && n % 12 === 0 ? h("span", { class: "note" }, noteName(n)) : null,
-        i < KEYMAP.length ? h("span", { class: "hint" }, KEYMAP[i].toUpperCase()) : null);
-      k.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        k.setPointerCapture(e.pointerId);
-        const r = k.getBoundingClientRect();
-        const vel = Math.max(20, Math.min(127, Math.round(127 - (e.clientY - r.top) / r.height * 80)));
-        noteOn(n, vel, "pointer");
-      });
-      const up = () => noteOff(n);
-      k.addEventListener("pointerup", up);
-      k.addEventListener("pointercancel", up);
+    const width = kb.clientWidth;
+    if (!width) return;
+    const whites = Math.max(7, Math.min(36, Math.floor(width / 34)));
+    const ww = width / whites;
+    let n = 12 * (octave + 1), wi = 0;
+    while (wi < whites && n <= 127) {
+      const black = [1, 3, 6, 8, 10].includes(n % 12);
+      const k = h("div", { class: "key" + (black ? " black" : ""), "data-note": n });
+      if (black) { k.style.left = (wi * ww - ww * 0.32) + "px"; k.style.width = (ww * 0.64) + "px"; }
+      else {
+        k.style.left = (wi * ww) + "px"; k.style.width = ww + "px";
+        if (n % 12 === 0) k.append(h("span", { class: "note" }, noteName(n)));
+        wi++;
+      }
+      const i = n - 12 * (octave + 1);
+      if (i < KEYMAP.length) k.append(h("span", { class: "hint" }, KEYMAP[i].toUpperCase()));
       kb.append(k);
       keys.push(k);
+      n++;
     }
     paint();
   }
+  new ResizeObserver(build).observe(kb);
   function paint() { for (const k of keys) k.classList.toggle("down", down.has(Number(k.dataset.note))); }
+
+  /* Pointers: one per finger, and dragging across keys glides from note to note. */
+  const pointers = new Map();
+  const noteAt = (x, y) => {
+    const k = document.elementFromPoint(x, y)?.closest(".key");
+    return k && kb.contains(k) ? Number(k.dataset.note) : null;
+  };
+  kb.addEventListener("pointerdown", (e) => {
+    const n = noteAt(e.clientX, e.clientY);
+    if (n == null) return;
+    e.preventDefault();
+    try { kb.setPointerCapture(e.pointerId); } catch { /* synthetic event */ }
+    pointers.set(e.pointerId, n);
+    noteOn(n, Number(vel.value), "pointer:" + e.pointerId);
+  });
+  kb.addEventListener("pointermove", (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    const n = noteAt(e.clientX, e.clientY), prev = pointers.get(e.pointerId);
+    if (n == null || n === prev) return;
+    noteOff(prev);
+    pointers.set(e.pointerId, n);
+    noteOn(n, Number(vel.value), "pointer:" + e.pointerId);
+  });
+  const lift = (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    noteOff(pointers.get(e.pointerId));
+    pointers.delete(e.pointerId);
+  };
+  kb.addEventListener("pointerup", lift);
+  kb.addEventListener("pointercancel", lift);
 
   const typing = (e) => /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable;
   window.addEventListener("keydown", (e) => {
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
     const i = KEYMAP.indexOf(e.key.toLowerCase());
-    if (i >= 0) { noteOn(12 * (octave + 1) + i, 100, "kbd:" + e.key.toLowerCase()); e.preventDefault(); }
+    if (i >= 0) { noteOn(12 * (octave + 1) + i, Number(vel.value), "kbd:" + e.key.toLowerCase()); e.preventDefault(); }
     else if (e.key === "z" || e.key === "x") { allOff(); octave = Math.max(0, Math.min(7, octave + (e.key === "x" ? 1 : -1))); octLabel.textContent = "C" + octave; build(); }
   });
   window.addEventListener("keyup", (e) => {
@@ -109,12 +143,12 @@ export function buildPlayer(link) {
     midiSel.firstChild.textContent = "No Web MIDI here";
   }
 
-  build();
   return h("footer", { class: "player" },
     h("div", { class: "strips" }, bend, wheel),
     kb,
     h("div", { class: "player-ctl" },
       h("div", { class: "row" }, octDown, octLabel, octUp),
+      h("label", { class: "sel" }, h("span", { class: "lbl" }, "Velocity"), vel),
       h("label", { class: "sel" }, h("span", { class: "lbl" }, "BPM"), bpm),
       h("label", { class: "sel chk" }, run, h("span", {}, "Play transport")),
       midiIn,

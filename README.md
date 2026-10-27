@@ -4,6 +4,8 @@ An 8-voice hybrid polysynth for Ableton Move, delivered as a [Schwung](https://g
 sound-generator module. Three band-limited oscillators, a multimode saturating filter, three envelopes
 and a Distortion / Chorus / Delay / Reverb chain, all on the Move's encoder pages.
 
+**Try it live:** [play Crest in your browser](https://klaine.github.io/crest/) (WebAssembly build, WebMIDI).
+
 Status: **milestones M0-M4 of `plan/` plus the web UI**. It builds, passes its test suite and has a
 release-style package, and it runs on a Move. See
 [plan/17-implementation-status.md](plan/17-implementation-status.md) for what is done and what is not.
