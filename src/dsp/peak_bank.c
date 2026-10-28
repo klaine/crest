@@ -135,6 +135,17 @@ float peak_bank_vol(int slot, int idx) {
 static uint8_t g_file[PEAK_BANK_MAX * PEAK_MSG_LEN * 2]; /* worker only */
 static int g_offs[PEAK_BANK_MAX];
 static uint8_t g_done[CREST_MAX_INSTANCES][PEAK_BANK_MAX]; /* levelled */
+static int g_seen[CREST_MAX_INSTANCES]; /* the req_gen the worker last picked up, per slot */
+
+/* Abandon a loudness render when the library is being unloaded (the destructor joins this thread)
+ * or a new bank was asked for (it should load now, not after up to three 6 s renders). */
+static int level_cancelled(void *ctx) {
+    (void)ctx;
+    if (atomic_load_explicit(&g_stop, memory_order_relaxed)) return 1;
+    for (int s = 0; s < CREST_MAX_INSTANCES; s++)
+        if (atomic_load_explicit(&g_bank[s].req_gen, memory_order_relaxed) != g_seen[s]) return 1;
+    return 0;
+}
 
 static void nap(long ms) { /* in short slices so that stopping the worker never waits long */
     for (; ms > 0 && !atomic_load_explicit(&g_stop, memory_order_relaxed); ms -= 10) {
@@ -184,7 +195,8 @@ static int level_one(int slot) {
             if (!g_done[slot][i]) idx = i;
     }
     if (idx < 0) return 0;
-    double vol = crest_level_solve(g_api, b->vals[idx], 1);
+    double vol = crest_level_solve_ex(g_api, b->vals[idx], 1, level_cancelled, NULL);
+    if (vol == CREST_LEVEL_CANCELLED) return 1; /* the loop picks up the stop or the new request */
     if (vol < 0.0) { /* no free instance to render on: try again in a while */
         nap(1000);
         return 1;
@@ -207,13 +219,12 @@ static void *worker(void *arg) {
     CPU_SET(2, &set);
     sched_setaffinity(0, sizeof set, &set);
 #endif
-    static int seen[CREST_MAX_INSTANCES];
     while (!atomic_load_explicit(&g_stop, memory_order_relaxed)) {
         int busy = 0;
         for (int s = 0; s < CREST_MAX_INSTANCES; s++) {
             int g = atomic_load_explicit(&g_bank[s].req_gen, memory_order_acquire);
-            if (g != seen[s]) {
-                seen[s] = g;
+            if (g != g_seen[s]) {
+                g_seen[s] = g;
                 load(s);
                 busy = 1;
             }

@@ -84,6 +84,14 @@ The browser build loads `.syx` files in a Web Worker; the Move loads them from `
 is now 31.7 KB: within 22 bytes of the validator's 31 KiB limit.
 
 ## Code review fixes (October 2026)
+- **Chord after an all-off:** after a preset or state load, CC 120 or a voice-mode change every voice fades, and a
+  chord played during that 1.5 ms fade kept only one note: each note overwrote the oldest fading voice's queued
+  start. The victim picker now prefers a fading voice with nothing queued.
+- **Loudness worker:** the solver renders on a scratch instance kept outside the 4-slot pool, so levelling a bank
+  never takes a slot the host needs, and it polls for a cancel between blocks: unloading `dsp.so` (whose destructor
+  joins the worker) or a new bank request no longer waits for up to three 6 s renders.
+- **CPU:** the oscillators' sine is a 9th-order polynomial instead of `sinf` (within 4e-6), and the pre-filter
+  overdrive and post-filter distortion keep the previous sample's antiderivative while the drive is steady.
 - **Loudness solve:** `crest_level_measure` now sets `offline`, which nothing set before: on a Move the worker thread
   asked the host for tempo and transport, and synced patches levelled differently depending on what was playing.
 - **Mono unison:** changing Unison in a mono mode retires the voices (like a voice-mode change). Lowering it during a

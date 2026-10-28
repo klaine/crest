@@ -123,7 +123,9 @@ static int in_alloc(const alloc_t *A, int i) {
 }
 
 /* Best voice to take: the quietest releasing one, else the oldest held one, else the oldest of
- * those already fading. */
+ * those already fading, preferring one with no note queued on it. Every voice fades after a hard
+ * all-off (a preset or state load, CC 120, a voice-mode change), and a chord played during that fade
+ * must queue one note per voice: picking the same oldest voice again would overwrite its queued note. */
 static int pick_victim(crest_inst_t *I, const alloc_t *A) {
     int best = -1;
     for (int i = 0; i < CREST_VOICES; i++) {
@@ -138,11 +140,12 @@ static int pick_victim(crest_inst_t *I, const alloc_t *A) {
         if (best < 0 || v->age < I->voice[best].age) best = i;
     }
     if (best >= 0) return best;
-    for (int i = 0; i < CREST_VOICES; i++) {
-        voice_t *v = &I->voice[i];
-        if (!v->active || in_alloc(A, i)) continue;
-        if (best < 0 || v->age < I->voice[best].age) best = i;
-    }
+    for (int pass = 0; pass < 2 && best < 0; pass++)
+        for (int i = 0; i < CREST_VOICES; i++) {
+            voice_t *v = &I->voice[i];
+            if (!v->active || in_alloc(A, i) || (pass == 0 && v->pend)) continue;
+            if (best < 0 || v->age < I->voice[best].age) best = i;
+        }
     return best;
 }
 
@@ -589,8 +592,17 @@ void voice_render(crest_inst_t *I, voice_t *v, float *outl, float *outr, int n) 
             float p = v->p_pod + (pod - v->p_pod) * fr;
             float gg = 1.0f + 15.0f * p * p;
             float dx = s - v->od_xp;
-            float y = fabsf(dx) > 1e-5f ? (logcosh_f(gg * s) - logcosh_f(gg * v->od_xp)) / (gg * dx)
-                                        : tanhf(gg * 0.5f * (s + v->od_xp));
+            float y;
+            if (fabsf(dx) > 1e-5f) {
+                float Fp = gg == v->od_gg ? v->od_F : logcosh_f(gg * v->od_xp);
+                float F = logcosh_f(gg * s);
+                y = (F - Fp) / (gg * dx);
+                v->od_F = F;
+                v->od_gg = gg;
+            } else {
+                y = tanhf(gg * 0.5f * (s + v->od_xp));
+                v->od_gg = 0.0f;
+            }
             v->od_xp = s;
             s = y / (1.0f + 0.6f * p);
         }
@@ -606,16 +618,25 @@ void voice_render(crest_inst_t *I, voice_t *v, float *outl, float *outr, int n) 
         for (int i = 0; i < n; i++) {
             float fr = (float)(i + 1) * inv_n;
             float p = v->p_pdist + (pdist - v->p_pdist) * fr;
-            float gg = 1.0f + 24.0f * p * p, b = 0.15f * p, tb = tanhf(b);
+            float gg = 1.0f + 24.0f * p * p, b = 0.15f * p;
+            if (b != v->pd_b || v->pd_gg == 0.0f) {
+                v->pd_b = b;
+                v->pd_tb = tanhf(b);
+                v->pd_gg = 0.0f; /* the kept antiderivative belongs to the old bias */
+            }
+            float tb = v->pd_tb;
             float x = buf[i] * out_gain;
             float dx = x - v->pd_xp;
             float y;
             if (fabsf(dx) > 1e-5f) {
                 float F = logcosh_f(gg * x + b) / gg - x * tb;
-                float Fp = logcosh_f(gg * v->pd_xp + b) / gg - v->pd_xp * tb;
+                float Fp = gg == v->pd_gg ? v->pd_F : logcosh_f(gg * v->pd_xp + b) / gg - v->pd_xp * tb;
                 y = (F - Fp) / dx;
+                v->pd_F = F;
+                v->pd_gg = gg;
             } else {
                 y = tanhf(gg * 0.5f * (x + v->pd_xp) + b) - tb;
+                v->pd_gg = 0.0f;
             }
             v->pd_xp = x;
             y /= 1.0f + p;

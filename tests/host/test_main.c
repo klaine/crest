@@ -162,6 +162,12 @@ static double alias_db(const float *x, double f0) {
 
 /* ================================================================== tests */
 
+static int g_cancel_polls;
+static int cancel_after(void *ctx) { /* lets a few blocks render, then cancels */
+    (void)ctx;
+    return ++g_cancel_polls >= 3;
+}
+
 static void test_abi(void) {
     printf("abi\n");
     CHECK(api && api->api_version == 2, "api_version");
@@ -173,6 +179,24 @@ static void test_abi(void) {
     CHECK(mk() == NULL, "pool should be exhausted");
     char eb[80];
     CHECK(api->get_error(NULL, eb, sizeof eb) > 0, "pool-full error text");
+    /* The loudness solver renders on its own instance, so a full pool does not stop it, and a cancel
+     * abandons the render at once. */
+    {
+        static float lv[P_COUNT];
+        for (int i = 0; i < P_COUNT; i++) lv[i] = CREST_PARAMS[i].def;
+        double lpk, lrms;
+        CHECK(crest_level_measure(api, lv, 0.3, &lpk, &lrms), "level measure with the pool full");
+        CHECK(mk() == NULL, "the scratch instance is not handed to the host");
+        clock_t t0 = clock();
+        double r = crest_level_solve_ex(api, lv, 1, cancel_after, NULL);
+        double secs = (double)(clock() - t0) / CLOCKS_PER_SEC;
+        CHECK(r == CREST_LEVEL_CANCELLED, "cancelled solve returns CREST_LEVEL_CANCELLED (%g)", r);
+        CHECK(g_cancel_polls >= 3, "the render polled for a cancel (%d)", g_cancel_polls);
+        CHECK(secs < 0.5, "a cancelled solve returns promptly (%.2f s)", secs);
+        void *sc = crest_scratch_instance();
+        CHECK(sc != NULL, "the scratch instance is free again after a cancel");
+        if (sc) api->destroy_instance(sc);
+    }
     api->destroy_instance(h[0]);
     h[0] = mk();
     CHECK(h[0] != NULL, "slot reusable after destroy");
@@ -571,6 +595,16 @@ static void test_voices(void) {
         if (I->voice[i].active && I->voice[i].note == 60) has60 = 1;
     }
     CHECK(has70 && !has60, "new note stole the oldest (70:%d 60:%d)", has70, has60);
+    /* A chord right after a hard all-off: every voice is fading, and each note must queue on a
+     * voice of its own rather than all overwriting the oldest one's queued note. */
+    midi(h, 0xB0, 120, 0);
+    for (int n = 72; n < 76; n++) note_on(h, n, 100);
+    render(h, 2048, NULL, NULL);
+    int held_chord = 0;
+    for (int i = 0; i < CREST_VOICES; i++)
+        if (I->voice[i].active && I->voice[i].gate && I->voice[i].note >= 72 && I->voice[i].note < 76) held_chord++;
+    CHECK(held_chord == 4, "chord during the all-off fade keeps 4 notes, got %d", held_chord);
+    for (int n = 72; n < 76; n++) note_off(h, n);
     midi(h, 0xB0, 120, 0);
     render(h, 2048, NULL, NULL);
     CHECK(active_voices(I) == 0, "all sound off");

@@ -22,6 +22,7 @@ scripts/deploy.sh [host]      # staged install on a Move; scripts/logs.sh follow
 - `plan/` is the spec, and the code is the source of truth once it exists. If they disagree, fix one
   of them in the same change. `plan/17-implementation-status.md` records what's built, measured and
   different from the spec: update it when that changes.
+- `BACKLOG.md` lists features proposed beyond the `plan/15` milestones.
 - **VERIFY** in `plan/` marks assumptions about the device or host. Crest runs on a Move, Peak `.syx`
   import included, but the individual VERIFY items haven't been ticked off (`plan/16` lists the risks).
 

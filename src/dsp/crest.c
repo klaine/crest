@@ -13,57 +13,64 @@
 #include "dsp_util.h"
 
 static const host_api_v1_t *g_host;
-static crest_inst_t g_pool[CREST_MAX_INSTANCES]; /* static: no malloc anywhere */
+/* static: no malloc anywhere. The extra last slot is the loudness solver's (crest_scratch_instance). */
+static crest_inst_t g_pool[CREST_MAX_INSTANCES + 1];
 static plugin_api_v2_t g_api; /* defined at the end */
 static char g_err[64];
 
 /* ------------------------------------------------------------------ lifecycle */
 
+static crest_inst_t *claim(crest_inst_t *p) {
+    int expect = 0;
+    if (!atomic_compare_exchange_strong(&p->in_use, &expect, 1)) return NULL;
+    int was_used = p->ever_used;
+    /* Reset everything after the pool bookkeeping except the big FX arena, which is cleared
+     * lazily (64 KB per block) when an effect is first switched on again. */
+    memset((char *)p + offsetof(crest_inst_t, v), 0, offsetof(crest_inst_t, fx) - offsetof(crest_inst_t, v));
+    memset(&p->fx, 0, offsetof(fx_t, mem));
+    p->ever_used = 1;
+    p->slot = (int)(p - g_pool);
+    p->syx_cur = -1;
+    peak_bank_start(&g_api); /* once per process, here on the loader thread (never the callback) */
+    peak_bank_request(p->slot, ""); /* a previous instance's bank does not carry over */
+    p->err[0] = 0;
+    fx_init(&p->fx, was_used);
+    params_defaults(p);
+    params_prepare(p);
+    p->last_vmode = p->bp.vmode;
+    p->last_unison = p->bp.unison;
+    p->expression = 1.0f;
+    p->s_expr = 1.0f;
+    p->beat = -1.0;
+    p->bpm = 120.0f;
+    for (int n = 0; n < 2; n++) {
+        p->glfo[n].rng = 0x9E3779B1u * (uint32_t)(n + 1) | 1u;
+        lfo_start(&p->glfo[n], &p->bp.lfo_p[2 + n], p->bp.lfo_p[2 + n].trig == LT_FREE);
+    }
+    p->crng = 0x6C8E9CF5u;
+    for (int n = 0; n < 2; n++) {
+        p->cshare[n].sh_prev = rng_bi(&p->crng);
+        p->cshare[n].sh_next = rng_bi(&p->crng);
+    }
+    return p;
+}
+
 static void *crest_create_instance(const char *module_dir, const char *json_defaults) {
     (void)module_dir;
     (void)json_defaults;
     for (int i = 0; i < CREST_MAX_INSTANCES; i++) {
-        crest_inst_t *p = &g_pool[i];
-        int expect = 0;
-        if (!atomic_compare_exchange_strong(&p->in_use, &expect, 1)) continue;
-        int was_used = p->ever_used;
-        /* Reset everything after the pool bookkeeping except the big FX arena, which is cleared
-         * lazily (64 KB per block) when an effect is first switched on again. */
-        memset((char *)p + offsetof(crest_inst_t, v), 0, offsetof(crest_inst_t, fx) - offsetof(crest_inst_t, v));
-        memset(&p->fx, 0, offsetof(fx_t, mem));
-        p->ever_used = 1;
-        p->slot = (int)(p - g_pool);
-        p->syx_cur = -1;
-        peak_bank_start(&g_api); /* once per process, here on the loader thread (never the callback) */
-        peak_bank_request(p->slot, ""); /* a previous instance's bank does not carry over */
-        p->err[0] = 0;
-        fx_init(&p->fx, was_used);
-        params_defaults(p);
-        params_prepare(p);
-        p->last_vmode = p->bp.vmode;
-        p->last_unison = p->bp.unison;
-        p->expression = 1.0f;
-        p->s_expr = 1.0f;
-        p->beat = -1.0;
-        p->bpm = 120.0f;
-        for (int n = 0; n < 2; n++) {
-            p->glfo[n].rng = 0x9E3779B1u * (uint32_t)(n + 1) | 1u;
-            lfo_start(&p->glfo[n], &p->bp.lfo_p[2 + n], p->bp.lfo_p[2 + n].trig == LT_FREE);
-        }
-        p->crng = 0x6C8E9CF5u;
-        for (int n = 0; n < 2; n++) {
-            p->cshare[n].sh_prev = rng_bi(&p->crng);
-            p->cshare[n].sh_next = rng_bi(&p->crng);
-        }
-        return p;
+        crest_inst_t *p = claim(&g_pool[i]);
+        if (p) return p;
     }
     snprintf(g_err, sizeof g_err, "Crest: all %d instances are in use", CREST_MAX_INSTANCES);
     return NULL;
 }
 
+void *crest_scratch_instance(void) { return claim(&g_pool[CREST_MAX_INSTANCES]); }
+
 static crest_inst_t *as_inst(void *p) {
     crest_inst_t *c = (crest_inst_t *)p;
-    if (c >= g_pool && c < g_pool + CREST_MAX_INSTANCES) return c;
+    if (c >= g_pool && c < g_pool + CREST_MAX_INSTANCES + 1) return c;
     return NULL;
 }
 

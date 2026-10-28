@@ -85,12 +85,12 @@ static void wt_setup(wtc_t *w, int table, float f_hz) {
 /* ------------------------------------------------------------------ waveforms */
 
 static inline float wave_sine(float t, float dt, float shape) {
-    float s = sinf(CREST_TAU * t);
+    float s = sin_cycle(t);
     if (shape <= 0.001f) return s;
     /* Self phase modulation: adds harmonics smoothly. Attenuated at high pitch (aliasing). */
     float f0 = dt * CREST_FS;
     float k = 2.2f * shape * shape * (f0 > 4000.0f ? 4000.0f / f0 : 1.0f);
-    return sinf(CREST_TAU * t + k * s);
+    return sin_cycle(t + k * s * (1.0f / CREST_TAU));
 }
 
 static inline float wave_saw(float t, float dt, float shape) {
@@ -139,14 +139,14 @@ static inline float wave_bl(int wave, float t, float dt, float shape, const wtc_
     if (wave == WAVE_WT) return wt_read(wt, shape, t);
     if (wave == WAVE_SINE) return wave_sine(t, dt, shape);
     float sm = clampf((dt - 0.2f) * 20.0f, 0.0f, 1.0f);
-    if (sm >= 1.0f) return sinf(CREST_TAU * t);
+    if (sm >= 1.0f) return sin_cycle(t);
     float y;
     switch (wave) {
     case WAVE_TRI: y = wave_tri(t, dt, shape); break;
     case WAVE_SAW: y = wave_saw(t, dt, shape); break;
     default: y = wave_pulse(t, dt, shape); break;
     }
-    if (sm > 0.0f) y += sm * (sinf(CREST_TAU * t) - y);
+    if (sm > 0.0f) y += sm * (sin_cycle(t) - y);
     return y;
 }
 

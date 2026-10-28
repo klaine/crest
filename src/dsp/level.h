@@ -1,7 +1,8 @@
 /* Loudness calibration of a patch (plan/18 "Loudness"), shared by the factory tool
  * (tests/host/level_presets.c), the browser's Peak import worker and banks loaded on the Move.
- * Each measurement renders offline on its own fresh instance from the pool (created and destroyed
- * here), so it needs a free slot and must not run on the audio thread. */
+ * Each measurement renders offline on a fresh instance: the scratch instance kept outside the pool
+ * for this (crest_scratch_instance), or a pool slot while that is busy. It must not run on the audio
+ * thread. */
 #ifndef CREST_LEVEL_H
 #define CREST_LEVEL_H
 
@@ -16,5 +17,15 @@ int crest_level_measure(const plugin_api_v2_t *api, const float *v, double vol, 
  * repeated only when it ran hot. A silent patch keeps the probe volume. Returns < 0 when no instance
  * was free. */
 double crest_level_solve(const plugin_api_v2_t *api, const float *v, int fast);
+
+/* The same, polling cancel(ctx) between rendered blocks: a nonzero answer abandons the render (a 6 s
+ * render per probe would otherwise hold up whoever waits on the worker: unloading the library, a new
+ * bank). measure then returns 0 and solve CREST_LEVEL_CANCELLED. cancel may be NULL. */
+#define CREST_LEVEL_CANCELLED (-2.0)
+typedef int (*crest_level_cancel_fn)(void *ctx);
+int crest_level_measure_ex(const plugin_api_v2_t *api, const float *v, double vol, double *pk_db,
+                           double *rms_db, crest_level_cancel_fn cancel, void *ctx);
+double crest_level_solve_ex(const plugin_api_v2_t *api, const float *v, int fast,
+                            crest_level_cancel_fn cancel, void *ctx);
 
 #endif

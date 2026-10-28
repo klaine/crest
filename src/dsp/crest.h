@@ -83,6 +83,9 @@ typedef struct {
     float p_fmc[4];      /* FM indices of the previous sub-block (ramped) */
     float o3_prev[CREST_SUB]; /* O3's previous block: the O3>O1 modulator */
     float od_xp, pd_xp, pd_dc;
+    /* The antiderivative of the previous sample and the gain it was taken at, so a steady drive costs
+     * one logcosh per sample instead of two (0 gain: none kept). pd_b / pd_tb: tanh of the bias. */
+    float od_F, od_gg, pd_F, pd_gg, pd_b, pd_tb;
     uint32_t rng;
     float nz_lp;
 } voice_t;
@@ -134,6 +137,10 @@ typedef struct crest_inst {
 
 /* crest.c: the symbol the host looks up. */
 CREST_EXPORT plugin_api_v2_t *move_plugin_init_v2(const host_api_v1_t *host);
+/* The loudness solver's own instance, kept outside the CREST_MAX_INSTANCES pool so a bank being
+ * levelled never takes a slot the host could need. NULL while it is in use (then level.c falls back
+ * to the pool). Release it with destroy_instance. */
+void *crest_scratch_instance(void);
 
 /* mod.c */
 void mod_eval(const bparams_t *bp, const float *src, float *acc);

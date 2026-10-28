@@ -40,6 +40,18 @@ static inline float rng_bi(uint32_t *s) {
     return (float)(rng_u32(s) & 0xFFFFFFu) * (2.0f / 16777216.0f) - 1.0f;
 }
 
+/* sin(2 pi t) for any t (in cycles), without a libm call: folded onto a quarter cycle, the 9th-order
+ * series is within 4e-6 of sinf, below a 16-bit LSB. The oscillators call it every sample (Bizar's
+ * engines use the same). */
+static inline float sin_cycle(float t) {
+    float x = t - floorf(t);
+    if (x >= 0.5f) x -= 1.0f;
+    if (x > 0.25f) x = 0.5f - x;
+    else if (x < -0.25f) x = -0.5f - x;
+    float u = CREST_TAU * x, u2 = u * u;
+    return u * (1.0f + u2 * (-1.6666667e-1f + u2 * (8.3333333e-3f + u2 * (-1.9841270e-4f + u2 * 2.7557319e-6f))));
+}
+
 /* MIDI note number (fractional) to Hz. */
 static inline float semis_to_hz(float semis) {
     return 440.0f * exp2f((semis - 69.0f) / 12.0f);
