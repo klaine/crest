@@ -6,14 +6,25 @@ import { noteName } from "./format.js";
 
 const KEYMAP = "awsedftgyhujkolp;'";
 
+/* Keep `held` up to date with one incoming MIDI message. Channels are merged, as they are on the way
+ * into the engine, so one note off ends the note; velocity 0 is a note off. */
+export function trackMidiNote(held, m) {
+  if (m[0] === 0x90 && m[2] > 0) held.add(m[1]);
+  else if (m[0] === 0x80 || m[0] === 0x90) held.delete(m[1]);
+  else if (m[0] === 0xb0 && (m[1] === 120 || m[1] === 123)) held.clear();
+}
+
 export function buildPlayer(link) {
   let octave = 4;
   const down = new Map(); // note -> source
+  const midiHeld = new Set(); // notes held by MIDI inputs, lit on the keyboard
   const keys = [];
   const send = (m) => link.midi(m);
   const noteOn = (n, v, src) => { if (down.has(n)) return; down.set(n, src); send([0x90, n, v]); paint(); };
   const noteOff = (n) => { if (!down.has(n)) return; down.delete(n); send([0x80, n, 0]); paint(); };
   const allOff = () => { for (const n of [...down.keys()]) noteOff(n); };
+  /* A device went away or its input was deselected: its note offs will never arrive. */
+  const releaseMidi = () => { for (const n of midiHeld) send([0x80, n, 0]); midiHeld.clear(); paint(); };
 
   const kb = h("div", { class: "keys", role: "group", "aria-label": "Keyboard" });
   const vel = h("input", { type: "range", min: 1, max: 127, value: 100, "aria-label": "Velocity" });
@@ -44,7 +55,7 @@ export function buildPlayer(link) {
     paint();
   }
   new ResizeObserver(build).observe(kb);
-  function paint() { for (const k of keys) k.classList.toggle("down", down.has(Number(k.dataset.note))); }
+  function paint() { for (const k of keys) { const n = Number(k.dataset.note); k.classList.toggle("down", down.has(n) || midiHeld.has(n)); } }
 
   /* Pointers: one per finger, and dragging across keys glides from note to note. */
   const pointers = new Map();
@@ -132,10 +143,18 @@ export function buildPlayer(link) {
         if (midiSel.value !== "*" && midiSel.value !== e.target.id) return;
         const d = e.data;
         if (d[0] >= 0xf0) return;
-        send([d[0] & 0xf0, d[1] | 0, d[2] | 0]); // all channels into the one instance
+        const m = [d[0] & 0xf0, d[1] | 0, d[2] | 0]; // all channels into the one instance
+        send(m);
+        trackMidiNote(midiHeld, m);
+        paint();
       };
       for (const inp of access.inputs.values()) inp.onmidimessage = onMsg;
-      access.onstatechange = () => { for (const inp of access.inputs.values()) inp.onmidimessage = onMsg; fill(); };
+      access.onstatechange = (e) => {
+        if (e.port.state === "disconnected") releaseMidi();
+        for (const inp of access.inputs.values()) inp.onmidimessage = onMsg;
+        fill();
+      };
+      midiSel.addEventListener("change", releaseMidi);
       fill();
     }).catch(() => { midiSel.disabled = true; midiSel.firstChild.textContent = "MIDI unavailable"; });
   } else {

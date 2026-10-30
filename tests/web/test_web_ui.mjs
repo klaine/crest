@@ -14,6 +14,7 @@ globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
 globalThis.performance ??= { now: () => Date.now() };
 const fmt = await import(pathToFileURL(path.join(ROOT, "src/web/format.js")).href);
 const { Store } = await import(pathToFileURL(path.join(ROOT, "src/web/store.js")).href);
+const { trackMidiNote } = await import(pathToFileURL(path.join(ROOT, "src/web/keyboard.js")).href);
 
 const meta = JSON.parse(fs.readFileSync(path.join(ROOT, "build/ui/ui_meta.json"), "utf8"));
 const presets = JSON.parse(fs.readFileSync(path.join(ROOT, "build/ui/ui_presets.json"), "utf8"));
@@ -96,6 +97,24 @@ await new Promise((r) => setTimeout(r, 80));
 check(sent.some(([k, v]) => k === "flt_cut" && v === "0.3000"), "the final value of a drag is sent");
 const blob = JSON.parse(s.stateBlob("T"));
 check(blob.fmt === "crest" && blob.name === "T" && !("mm_sel" in blob) && blob.o1_wave === "4", "stateBlob is a Crest state");
+
+// ---- keys lit by incoming MIDI
+const held = new Set();
+trackMidiNote(held, [0x90, 60, 100]);
+trackMidiNote(held, [0x90, 64, 100]);
+trackMidiNote(held, [0x90, 60, 100]);
+trackMidiNote(held, [0x80, 60, 0]);
+check(!held.has(60) && held.has(64), "one note off ends a note");
+trackMidiNote(held, [0x90, 64, 0]);
+check(held.size === 0, "velocity 0 is a note off");
+trackMidiNote(held, [0x90, 67, 100]);
+trackMidiNote(held, [0xb0, 1, 64]);
+check(held.has(67), "other messages leave held notes alone");
+trackMidiNote(held, [0xb0, 123, 0]);
+check(held.size === 0, "All Notes Off clears the keys");
+trackMidiNote(held, [0x90, 67, 100]);
+trackMidiNote(held, [0xb0, 120, 0]);
+check(held.size === 0, "All Sound Off clears the keys");
 
 console.log(`web ui: ${checks - fails} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
