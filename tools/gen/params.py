@@ -65,6 +65,9 @@ MOD_DEST_SHORT = (["--", "Pitc", "O1Pi", "O2Pi", "O3Pi", "O1Sh", "O2Sh", "O3Sh",
 assert len(MOD_SOURCES) == len(MOD_SOURCE_SHORT) == 33 and len(MOD_DESTS) == len(MOD_DEST_SHORT) == 59
 FX_ROUTES = ["Parallel", "Dly>Rev>Cho", "Dly>Cho>Rev", "Rev>Dly>Cho", "Rev>Cho>Dly", "Cho>Dly>Rev", "Cho>Rev>Dly"]
 ARP_MODES = ["Up", "Down", "UpDown", "UpDown2", "Played", "Random", "Chord"]
+# Order matches SCALE_MASK in src/dsp/arp.c. Set follows the Move set; the others are in C.
+# Four letters at most, so they need no short_options: chain_params has no room for them.
+ARP_SCALES = ["Off", "Set", "Maj", "Min", "Dor", "Phr", "Lyd", "Mix", "Pent", "MPen", "Blue"]
 ARP_RATES = ["2bar", "1.5b", "2brT", "1bar", "1/2D", "1brT", "1/2", "1/4D", "1/2T", "1/4", "1/8D", "1/4T", "1/8",
              "16D", "1/8T", "1/16", "16T", "1/32", "32T"]
 DIST_TYPES = ["Soft", "Hard", "Fold", "Crush"]
@@ -301,6 +304,7 @@ P("arp_gate", "Arp Gate", "Gate", "float", 0.05, 1, 0.5)
 P("arp_swing", "Arp Swing", "Swing", "float", 0.2, 0.8, 0.5)
 P("arp_latch", "Arp Latch", "Latch", "enum", 0, 0, "Off", opts=ONOFF)
 P("arp_ksync", "Arp Key Sync", "KSync", "enum", 0, 0, "On", opts=ONOFF)
+P("arp_scale", "Arp Scale", "Scale", "enum", 0, 0, "Off", opts=ARP_SCALES)
 
 # --- Peak banks on the Move (src/dsp/peak_bank.c): the syx_file browser is a special chain_params entry
 #     (gen.py), this knob picks a patch of the loaded bank. Not saved: the patch itself is. -----------
@@ -310,7 +314,7 @@ P("syx_patch", "Peak Patch", "Patch", "int", 0, 127, 0, state=False)
 # knobs: list of key or (key, short_override). The root level doubles as the Main page.
 # (level id, label, knobs, extra) - extra holds the keys of a list level (knobs = []).
 LEVELS = [
-    ("perform", "Perform", ["anim1", "anim2", "anim1_mode", "anim2_mode", "patch_vol", "v_drift", "arp_on"], None),
+    ("perform", "Perform", ["anim1", "anim2", "anim1_mode", "anim2_mode", "patch_vol", "v_drift", "arp_on", "arp_scale"], None),
     ("macros", "Macros", ["mac1", "mac2", "mac3", "mac4", "mac5", "mac6", "mac7", "mac8"], None),
     ("osc1", "Oscillator 1", ["o1_wave", "o1_table", "o1_shape", "o1_dens", "o1_coarse", "o1_fine", "o1_vsync", "mx_o1"], None),
     ("osc1m", "Osc 1 Modulation", ["o1_shsrc", "o1_shamt", "o1_ddet", "o1_penv", "o1_plfo", "o1_fixed"], None),
@@ -394,7 +398,7 @@ for _n in (1, 2, 3, 4):
     DISP["l%d_phase" % _n] = ["lin", 0, 360, "deg"]
 
 # Knobs that raise an on-device card (src/cards.js) while held or turned: the values whose meaning
-# needs more than the header's number. Each costs ~35 bytes of chain_params.
+# needs more than the header's number. Each costs ~29 bytes of chain_params.
 CARD_KEYS = (["flt_cut", "flt_env", "flt_ae", "v_glide", "v_udet", "mm_dep", "mac_amt", "arp_rhy", "fx_route",
               "dly_time", "rev_decay", "cho_rate"] +
              ["%s_%s" % (e, s) for e in ("ae", "m1", "m2") for s in "adr"] +

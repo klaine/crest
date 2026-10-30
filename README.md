@@ -134,4 +134,5 @@ with them is for your own Move; get the authors' consent before sharing it, or r
 and rebuild.
 
 ## Licence
-MIT. The effect algorithms are adapted from Amino (MIT), by the same author.
+MIT. The effect algorithms are adapted from Amino (MIT), by the same author. Schwung's API header and
+set-info reader are MIT too: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

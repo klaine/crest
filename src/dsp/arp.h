@@ -18,6 +18,9 @@ typedef struct {
     int step_played;   /* the current step triggered notes */
     double pos;        /* free-running position in beats */
     uint32_t rng;
+    uint16_t set_mask; /* the Move set's scale, 0 until known (Set then means C minor) */
+    int8_t set_root, set_root_raw;
+    char set_name[24]; /* as read, to skip the compares when the set has not changed */
 } arp_t;
 
 struct crest_inst;
@@ -28,5 +31,6 @@ void arp_note_on(struct crest_inst *I, int note, int vel);
 void arp_note_off(struct crest_inst *I, int note);
 void arp_all_off(struct crest_inst *I);     /* release what the arp is playing and forget held keys */
 void arp_tick(struct crest_inst *I, int n); /* once per sub-block of n samples */
+void arp_set_scale(struct crest_inst *I, int root_note, const char *scale); /* the Move set's root and scale */
 
 #endif

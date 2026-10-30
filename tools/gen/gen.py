@@ -140,7 +140,7 @@ def chain_params(nfactory):
         if p["viz"]:
             e["viz"] = p["viz"]
         if p["key"] in PM.CARD_KEYS:
-            e["card_script"] = "cards.js#crest_card"
+            e["card_script"] = "cards.js#crst"
         out.append(e)
     out.append({"key": "preset", "name": "Factory Patch", "type": "int", "min": 0,
                 "max": nfactory - 1, "step": 1})

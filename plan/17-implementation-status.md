@@ -105,12 +105,19 @@ is now 31.7 KB: within 22 bytes of the validator's 31 KiB limit.
   factor: about 22% less time on an 8-voice patch with all oscillators synced (146 to 114 us on the build machine),
   bit-identical output.
 
+## Arp scale
+`arp_scale` (Perform page, web panel) quantizes the held keys down to Off, Set or a fixed scale in C ([09](09-arpeggiator.md)).
+Set reads the Move set's root and scale through `move_info.h`, the same way Amino does: the first read is in
+`create_instance`, then a lock-free copy each block while the arp is on with Scale = Set. It recognises Amino's names
+(major, minor, dorian, phrygian, lydian, mixolydian, the pentatonics, blues, chromatic); any other name keeps the last
+scale. Reading a real set hasn't been checked on a Move yet.
+
 ## Not done yet
 - **M4:** reverb freeze. (`dly_slew`, delay L/R ratio and width, chorus and reverb EQ and reverb modulation are in, web UI only: chain_params is full.)
 - **M5:** 64 curated patches (the 529 Peak patches cover evaluation for now).
 - **M6:** CI, catalog entry, golden-file tests.
 - Open points in the Peak import: see the end of [18](18-peak-import.md); the byte layout is inferred, not documented by Novation.
-- `chain_params` is 31.5 KB against the validator's 31 KiB limit (host buffer 32 KiB): about 250 bytes left.
+- `chain_params` is close to the validator's 31 KiB limit (host buffer 32 KiB); `gen.py` prints its size.
   LFO FadeSync and LFO 3/4 Repeats / Fade Mode are web-UI only for that reason.
 
 ## Deviations from the spec
@@ -122,7 +129,7 @@ is now 31.7 KB: within 22 bytes of the validator's 31 KiB limit.
 - **Chorus depth** is limited to 90% of the base delay so a tap can never go negative.
 - **Alias limits** for the default 2-point polyBLEP are in `tests/host/test_main.c`; the 4-point limits are the ones in [04 §10](04-oscillators.md).
 
-## To verify on a Move (nothing below has been run on hardware)
+## To verify on a Move (Crest runs on one, but these items haven't been ticked off one by one)
 1. Install with `scripts/deploy.sh`; the module appears as a sound generator and `debug.log` is clean. The build targets `aarch64-linux-gnu.2.28`; check Move's glibc if it fails to load.
 2. Pages with fewer than 8 knobs (Mixer 6, Filter 7, Voice 7, effects 4-7) draw correctly.
 3. The `viz` declarations: envelope groups, the filter picture with the type as a separate cell, and the waveform and fader kinds.

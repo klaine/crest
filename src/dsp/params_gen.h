@@ -371,6 +371,7 @@ enum {
     P_ARP_SWING,
     P_ARP_LATCH,
     P_ARP_KSYNC,
+    P_ARP_SCALE,
     P_SYX_PATCH,
     P_COUNT
 };

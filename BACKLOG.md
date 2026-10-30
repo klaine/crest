@@ -3,20 +3,6 @@
 Features proposed but not started, beyond the milestones in [plan/15](plan/15-roadmap.md). Each entry
 says what done looks like; record it in [plan/17](plan/17-implementation-status.md) when it ships.
 
-## Scale-lock the arpeggiator to the Move set
-
-Shared with Bizar (its `BACKLOG.md` has the same entry); the two can be done together.
-
-- **What:** an optional scale quantizer on the notes the arpeggiator plays (`src/dsp/arp.c`, the
-  parameter in `tools/gen/params.py`). Options: Off, Set (follow the Move set's root and scale) and a
-  few fixed scales.
-- **Model:** Amino's Scale = Set option (`quantize_scale` and `amino_move_scale_update` in Amino's
-  `src/dsp/voice.c`). Crest has no set-info reader yet: copy `move_info.h` from Amino (Schwung code,
-  MIT; credit it in the notices). The read is a lock-free seqlock copy, safe on the audio thread;
-  resolve it first in `create_instance`, as Amino does.
-- **Done:** the parameter on the device and in the Remote UI, generated files current
-  (`scripts/build.sh --gen`), a native test, `plan/17` updated and `scripts/build.sh` passing.
-
 ## Pad-grid editor for the modulation matrix
 
 - **What:** an on-device editor for the 16-slot matrix on Move's pads, ported from Amino's Pad Matrix

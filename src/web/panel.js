@@ -149,7 +149,8 @@ function arp(ui) {
   return section("arp", "Arpeggiator",
     h("div", { class: "arp-top" }, led(ui, "arp_on", { label: "On", class: "big" }), led(ui, "arp_latch", { label: "Latch" }),
       led(ui, "arp_ksync", { label: "Key Sync" })),
-    row(select(ui, "arp_mode", { label: "Type" }), select(ui, "arp_rate", { label: "Rate" })),
+    row(select(ui, "arp_mode", { label: "Type" }), select(ui, "arp_rate", { label: "Rate" }),
+      select(ui, "arp_scale", { label: "Scale" })),
     vizCanvas(ui, ["arp_rhy"], drawRhythm(ui), "viz rhythm"),
     row(knob(ui, "arp_rhy", { label: "Rhythm" }), knob(ui, "arp_oct", { label: "Octaves" }),
       knob(ui, "arp_gate", { label: "Gate" }), knob(ui, "arp_swing", { label: "Swing" })));

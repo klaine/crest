@@ -1,6 +1,6 @@
 /* Crest: on-device parameter cards (Schwung `card_script`, plan/12).
  *
- * One drawer, `crest_card`, serves every knob listed in CARD_KEYS (tools/gen/params.py). The host
+ * One drawer, `crst`, serves every knob listed in CARD_KEYS (tools/gen/params.py). The host
  * raises the card while the knob is held or has just turned; it shows the value in real units and,
  * where a picture says more, a small drawing: the envelope stage being edited, the filter curve,
  * the FM route, the arp rhythm, the effect chain.
@@ -274,7 +274,7 @@
 
   /* ---------------------------------------------------------------- the card */
 
-  globalThis.crest_card = function (ctx, o) {
+  globalThis.crst = function (ctx, o) {
     var w = Math.max(1, Math.floor(Number(o.w || ctx.width || 96)));
     var h = Math.max(1, Math.floor(Number(o.h || ctx.height || 34)));
     var key = META.keys ? META.keys[o.name] : null;

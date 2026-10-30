@@ -288,6 +288,95 @@ static void test_arp(void) {
     (void)pat;
 }
 
+/* Arp scale: held keys go to the nearest scale note at or below them, and each plays once. */
+static void test_arp_scale(void) {
+    printf("arp scale\n");
+    void *h = mk();
+    crest_inst_t *I = (crest_inst_t *)h;
+    int seq[64], n, ok;
+    fresh(h);
+    sp(h, "arp_rate", "1/16");
+    sp(h, "arp_on", "On");
+    spf(h, "ae_r", 0.0);
+    spf(h, "arp_gate", 0.5);
+    note_on(h, 61, 100); /* C#, F#, B: none but B in C major */
+    note_on(h, 66, 100);
+    note_on(h, 71, 100);
+    n = arp_run(h, seq, 64, 22050);
+    ok = n >= 3;
+    for (int i = 0; i < n && ok; i++) ok = seq[i] == (int[]){61, 66, 71}[i % 3];
+    CHECK(ok, "scale Off leaves the keys alone (%d %d %d)", seq[0], seq[1], seq[2]);
+
+    sp(h, "arp_scale", "Maj");
+    n = arp_run(h, seq, 64, 44100); /* a change takes effect while the arp runs */
+    ok = n >= 6;
+    for (int i = 2; i < n && ok; i++) ok = seq[i] == 60 || seq[i] == 65 || seq[i] == 71;
+    CHECK(ok, "Major pulls C# F# B to C F B (%d %d %d)", seq[2], seq[3], seq[4]);
+
+    spf(h, "arp_oct", 2);
+    n = arp_run(h, seq, 64, 44100);
+    int mx = 0;
+    ok = n >= 6;
+    for (int i = 2; i < n && ok; i++) {
+        int pc = seq[i] % 12;
+        ok = pc == 0 || pc == 5 || pc == 11;
+        mx = seq[i] > mx ? seq[i] : mx;
+    }
+    CHECK(ok && mx == 83, "octaves stay in the scale, reaching 83 (%d)", mx);
+    spf(h, "arp_oct", 1);
+
+    /* Set: C minor until the set is known, then the set's root and scale. */
+    sp(h, "arp_scale", "Set");
+    note_off(h, 66);
+    note_off(h, 71);
+    note_off(h, 61);
+    note_on(h, 64, 100); /* E */
+    n = arp_run(h, seq, 64, 22050);
+    CHECK(n > 0 && seq[n - 1] == 63, "Set without set info is C minor: E plays Eb (%d)", n ? seq[n - 1] : -1);
+    arp_set_scale(I, 2, "Major"); /* D major: E is in it */
+    n = arp_run(h, seq, 64, 22050);
+    CHECK(n > 0 && seq[n - 1] == 64, "Set follows a change of root and scale (%d)", n ? seq[n - 1] : -1);
+    arp_set_scale(I, 2, "no such scale");
+    CHECK(I->arp.set_mask == 0x0AB5, "an unknown scale name keeps the last one");
+    arp_set_scale(I, 2, "Chromatic");
+    note_on(h, 63, 100);
+    n = arp_run(h, seq, 64, 22050);
+    ok = 0;
+    for (int i = 0; i < n; i++) ok |= seq[i] == 63;
+    CHECK(ok, "a chromatic set leaves the keys alone");
+    note_off(h, 63);
+    note_off(h, 64);
+
+    /* Keys that land on one scale note gate one voice, in Chord mode too. */
+    sp(h, "arp_scale", "Maj");
+    sp(h, "arp_mode", "Chord");
+    render(h, 22050, NULL, NULL);
+    note_on(h, 60, 100);
+    note_on(h, 61, 100);
+    int gated = 0;
+    for (int i = 0; i < 128 * 80; i += 128) {
+        render(h, 128, NULL, NULL);
+        int c = 0;
+        for (int k = 0; k < CREST_VOICES; k++) c += I->voice[k].active && I->voice[k].gate && !I->voice[k].fading;
+        if (c > gated) gated = c;
+    }
+    CHECK(gated == 1, "C and C# in C major play one note (%d)", gated);
+    note_off(h, 60); /* each key still releases: the held list keeps what was pressed */
+    note_off(h, 61);
+    sp(h, "arp_mode", "Up");
+    n = arp_run(h, seq, 64, 22050);
+    CHECK(n == 0, "releasing the keys stops the quantized arp (%d)", n);
+
+    /* The very bottom of the range cannot go lower. */
+    arp_set_scale(I, 2, "Major");
+    sp(h, "arp_scale", "Set");
+    render(h, 256, NULL, NULL);
+    note_on(h, 0, 100);
+    n = arp_run(h, seq, 64, 22050);
+    CHECK(n > 0 && seq[0] == 1, "note 0 in D major goes up to C# (%d)", n ? seq[0] : -1);
+    api->destroy_instance(h);
+}
+
 /* A voice-mode change followed by a note in the same block (or a preset/state load in a mono mode
  * followed by notes before the first render) must not lose the note. */
 static void test_vmode_change(void) {

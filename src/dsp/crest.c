@@ -12,6 +12,21 @@
 #include "peak_bank.h"
 #include "dsp_util.h"
 
+#if defined(__linux__)
+#include "move_info.h"
+#else
+/* The native tests and the browser have no Move: Set stays on its C minor fallback there. */
+typedef struct {
+    uint8_t valid;
+    int8_t root_note;
+    char scale[24];
+} move_info_t;
+static int move_info_read(move_info_t *out) {
+    (void)out;
+    return 0;
+}
+#endif
+
 static const host_api_v1_t *g_host;
 /* static: no malloc anywhere. The extra last slot is the loudness solver's (crest_scratch_instance). */
 static crest_inst_t g_pool[CREST_MAX_INSTANCES + 1];
@@ -55,12 +70,29 @@ static crest_inst_t *claim(crest_inst_t *p) {
     return p;
 }
 
+/* The Move set's root and scale, for the arp's Scale = Set. A lock-free seqlock copy, safe on the audio thread
+ * once create_instance has made the first read, which resolves the export (dlsym, shm_open, mmap). */
+static void update_set_scale(crest_inst_t *I) {
+    arp_t *a = &I->arp;
+    move_info_t mi;
+    memset(&mi, 0, sizeof mi);
+    if (!move_info_read(&mi) || !mi.valid) return;
+    if (mi.root_note == a->set_root_raw && memcmp(mi.scale, a->set_name, sizeof a->set_name) == 0) return;
+    a->set_root_raw = mi.root_note;
+    memcpy(a->set_name, mi.scale, sizeof a->set_name);
+    a->set_name[sizeof a->set_name - 1] = 0;
+    arp_set_scale(I, mi.root_note, a->set_name);
+}
+
 static void *crest_create_instance(const char *module_dir, const char *json_defaults) {
     (void)module_dir;
     (void)json_defaults;
     for (int i = 0; i < CREST_MAX_INSTANCES; i++) {
         crest_inst_t *p = claim(&g_pool[i]);
-        if (p) return p;
+        if (p) {
+            update_set_scale(p);
+            return p;
+        }
     }
     snprintf(g_err, sizeof g_err, "Crest: all %d instances are in use", CREST_MAX_INSTANCES);
     return NULL;
@@ -286,6 +318,7 @@ static void crest_render_block(void *instance, int16_t *out, int frames) {
             double bt = g_host->get_beat_position();
             if (bt >= 0.0) beat0 = bt;
         }
+        if (arp_enabled(I) && (int)I->v[P_ARP_SCALE] == 1) update_set_scale(I); /* the set can change under us */
     }
     I->bpm = bpm;
 

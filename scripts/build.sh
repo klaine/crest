@@ -136,7 +136,7 @@ fi
 echo "== dsp.so (aarch64-linux-gnu)"
 "$ZIG" cc -target aarch64-linux-gnu.2.28 -mcpu=cortex_a72 -std=c11 -O2 $WARN $MATH $DEFS \
   -fPIC -shared -fvisibility=hidden -s -I src/dsp \
-  -o "$MODULE/dsp.so" $DSP_SRC -lm -lpthread  # pthread: the Peak bank worker (glibc 2.28 keeps it apart)
+  -o "$MODULE/dsp.so" $DSP_SRC -lm -lpthread -ldl -lrt  # pthread: the Peak bank worker; dl, rt: move_info.h (glibc 2.28 keeps them apart)
 rm -f "$MODULE/dsp.so.o"
 
 echo "== check dsp.so"

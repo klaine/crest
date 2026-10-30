@@ -34,6 +34,8 @@ WORKER = {
     "pow", "exp2", "log", "log10", "sqrt", "cbrt", "floor", "fmod", "fmin", "fabs",
 }
 ALLOWED |= WORKER
+# The first move_info_read (src/dsp/move_info.h), in create_instance: never on the audio callback.
+ALLOWED |= {"dlsym", "shm_open", "mmap", "mmap64", "close"}
 
 
 def main(path):

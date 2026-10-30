@@ -987,6 +987,7 @@ int main(void) {
     test_modmatrix();
     test_peak_features();
     test_arp();
+    test_arp_scale();
     test_vmode_change();
     test_lfo_peak();
     test_lfo_voice();

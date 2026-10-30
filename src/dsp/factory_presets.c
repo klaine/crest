@@ -80,7 +80,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.5f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Three Saws */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -144,7 +144,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.4f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Warm Pad */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -208,7 +208,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.65f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Sub Bass */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -272,7 +272,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.5f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Pluck Keys */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -336,7 +336,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.4f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Lead Saw */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -400,7 +400,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.5f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Ring Bell */
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -464,7 +464,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         2.0f, 0.6f, 0.7f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Noise Sweep */
         0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -528,7 +528,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.7f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Pulse Brass */
         3.0f, 0.0f, 0.35f, 0.0f, 0.0f, 0.0f,
@@ -592,7 +592,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.5f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Hollow Triangle */
         1.0f, 0.0f, 0.3f, 0.0f, 0.0f, 0.0f,
@@ -656,7 +656,7 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.55f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
     {  /* Dirty Bass */
         2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -720,6 +720,6 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.6f, 0.5f, 0.4f, 0.15f, 0.04f,
         0.583f, 0.0f, 0.504f, 0.031f, 0.0f, 0.0f,
         15.0f, 0.0f, 1.0f, 0.5f, 0.5f, 0.0f,
-        1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     },
 };

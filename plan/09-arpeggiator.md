@@ -13,9 +13,11 @@
 | `arp_latch` | enum `Off, On` | Keeps playing after keys are released |
 | `arp_ksync` | enum `Off, On` | Restart the pattern on the first note of a new chord |
 | `arp_vel` | enum `Played, Fixed` | Fixed = 100 |
+| `arp_scale` | enum `Off, Set, Maj, Min, Dor, Phr, Lyd, Mix, Pent, MPen, Blue` | Append-only. `Set` follows the Move set's root and scale (C minor when there is no set info, as in the browser); the fixed scales are in C |
 
 ## 2. Note ordering
 - **Held set.** Up to 16 notes. They are kept in insertion order (for `Played`) and as a sorted copy (for the other modes).
+- **Scale.** With `arp_scale` on, each held key moves to the nearest scale note at or below it (above it only at the bottom of the MIDI range). Keys that land on the same note play once. A change of scale or set applies on the next step; what you hold is unchanged, so turning it off restores the keys.
 - **Octave expansion.** The sequence spans `arp_oct` octaves: it is the pattern over notes and octaves (e.g. Up over C E G with 2 octaves: C E G C' E' G').
 - **`Random`.** Picks uniformly from the expanded set without immediate repeats when the set has more than one note.
 - **`Chord`.** Plays all held notes, in all octaves (up to 8 voices), on each active step.

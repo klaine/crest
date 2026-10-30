@@ -9,25 +9,87 @@
 static const uint8_t ARP_TICKS[19] = {192, 144, 128, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2};
 _Static_assert(sizeof ARP_TICKS == 19, "arp rate table");
 
+/* Pitch classes above the root; matches ARP_SCALES in tools/gen/params.py (Off and Set are not looked up). */
+static const uint16_t SCALE_MASK[11] = {
+    0x0FFF, 0x05AD,
+    0x0AB5, /* Major */
+    0x05AD, /* Minor */
+    0x06AD, /* Dorian */
+    0x05AB, /* Phrygian */
+    0x0AD5, /* Lydian */
+    0x06B5, /* Mixolydian */
+    0x0295, /* Major pentatonic */
+    0x04A9, /* Minor pentatonic */
+    0x04E9, /* Blues */
+};
+#define SCALE_SET 1
+#define SCALE_MINOR 3
+
 int arp_enabled(const crest_inst_t *I) { return I->v[P_ARP_ON] >= 0.5f; }
 
-/* Rebuild the play order from the held keys, mode and octave range. */
+static int name_is(const char *a, const char *b) {
+    for (; *a && *b; a++, b++) {
+        char ca = *a >= 'A' && *a <= 'Z' ? (char)(*a - 'A' + 'a') : *a;
+        if (ca != *b) return 0;
+    }
+    return *a == 0 && *b == 0;
+}
+
+void arp_set_scale(crest_inst_t *I, int root_note, const char *scale) {
+    static const struct {
+        const char *name;
+        uint16_t mask;
+    } NAMES[] = {
+        {"major", 0x0AB5},  {"minor", 0x05AD},  {"dorian", 0x06AD},
+        {"phrygian", 0x05AB}, {"phryg", 0x05AB}, {"lydian", 0x0AD5},
+        {"mixolydian", 0x06B5}, {"mixo", 0x06B5}, {"major pentatonic", 0x0295},
+        {"pentatonic", 0x0295}, {"minor pentatonic", 0x04A9}, {"min pentatonic", 0x04A9},
+        {"blues", 0x04E9},  {"chromatic", 0x0FFF},
+    };
+    arp_t *a = &I->arp;
+    if (root_note >= 0 && root_note < 12) a->set_root = (int8_t)root_note;
+    if (!scale) return;
+    for (size_t i = 0; i < sizeof NAMES / sizeof NAMES[0]; i++)
+        if (name_is(scale, NAMES[i].name)) a->set_mask = NAMES[i].mask;
+}
+
+/* The nearest scale note at or below the key (above it at the very bottom of the range). */
+static int quantize(int note, unsigned mask, int root) {
+    for (int n = note; n >= 0; n--)
+        if (mask >> ((n + 12 - root) % 12) & 1u) return n;
+    for (int n = note + 1; n <= 127; n++)
+        if (mask >> ((n + 12 - root) % 12) & 1u) return n;
+    return note;
+}
+
+/* Rebuild the play order from the held keys, mode, octave range and scale. */
 static void rebuild(crest_inst_t *I) {
     arp_t *a = &I->arp;
     int mode = (int)I->v[P_ARP_MODE], octs = clampi((int)I->v[P_ARP_OCT], 1, 6);
     uint8_t base[ARP_HELD], bvel[ARP_HELD];
-    int nb = a->nheld;
-    if (nb == 0) {
+    int nb = 0;
+    if (a->nheld == 0) {
         a->nseq = 0;
         a->idx = 0;
         a->dir = 1;
         return;
     }
-    /* sorted order (with velocities) unless the mode keeps the order played */
-    for (int i = 0; i < nb; i++) {
-        base[i] = a->held[i];
-        bvel[i] = a->held_vel[i];
+    int scale = clampi((int)I->v[P_ARP_SCALE], 0, 10);
+    unsigned mask = SCALE_MASK[scale];
+    int root = 0;
+    if (scale == SCALE_SET) {
+        mask = a->set_mask ? a->set_mask : SCALE_MASK[SCALE_MINOR];
+        root = a->set_root;
     }
+    /* keys that land on the same scale note play once; octaves stay in the scale */
+    for (int i = 0; i < a->nheld; i++) {
+        int n = scale ? quantize(a->held[i], mask, root) : a->held[i], dup = 0;
+        for (int j = 0; j < nb; j++) dup |= base[j] == n;
+        if (dup) continue;
+        base[nb] = (uint8_t)n;
+        bvel[nb++] = a->held_vel[i];
+    }
+    /* sorted order (with velocities) unless the mode keeps the order played */
     if (mode != 4) {
         for (int i = 1; i < nb; i++) { /* insertion sort, velocities follow */
             uint8_t n = base[i], v = bvel[i];
@@ -210,8 +272,9 @@ void arp_tick(crest_inst_t *I, int n) {
     int on = toggled(I);
     if (!on) return;
     if (!a->rng) a->rng = 0x2545F491u;
-    int sig = (int)I->v[P_ARP_MODE] | (int)I->v[P_ARP_OCT] << 4;
-    if (sig != a->sig) { /* mode or octave range changed */
+    int sig = (int)I->v[P_ARP_MODE] | (int)I->v[P_ARP_OCT] << 4 | (int)I->v[P_ARP_SCALE] << 8 | a->set_root << 12 |
+              a->set_mask << 16;
+    if (sig != a->sig) { /* mode, octave range or scale changed */
         a->sig = sig;
         rebuild(I);
     }

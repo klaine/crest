@@ -69,7 +69,7 @@ const defaults = Object.fromEntries(meta.params.map((p) => [p.k, String(p.d)]));
 
 // ---- cards
 const cards = load("cards.js");
-check(typeof cards.crest_card === "function", "cards.js exports crest_card");
+check(typeof cards.crst === "function", "cards.js exports crst");
 const cardKeys = cp.filter((e) => e.card_script).map((e) => e.key);
 check(cardKeys.length > 20, "card keys declared (" + cardKeys.length + ")");
 for (const key of cardKeys) {
@@ -79,7 +79,7 @@ for (const key of cardKeys) {
     const { ctx, px, outsideCount } = makeCtx(96, 34);
     const values = { ...defaults, "o1_wave": "3", "mm_s1": "15", "mm_dst": "20" };
     try {
-      cards.crest_card(ctx, { name: p.n, value: raw, raw, values, w: 96, h: 34, nowMs: 0 });
+      cards.crst(ctx, { name: p.n, value: raw, raw, values, w: 96, h: 34, nowMs: 0 });
     } catch (err) { check(false, `card ${key}=${raw} threw ${err.message}`); continue; }
     check(outsideCount() === 0, `card ${key}=${raw} draws outside its frame (${outsideCount()} px)`);
     check(px.some((v) => v), `card ${key}=${raw} is empty`);
@@ -93,7 +93,7 @@ for (const [range, want] of [["0", "200 Hz"], ["1", "1.6 kHz"]]) {
   const printed = [];
   const print = ctx.print;
   ctx.print = (x, y, t, c) => { printed.push(String(t)); print(x, y, t, c); };
-  cards.crest_card(ctx, { name: byKey.l1_rate.n, value: "1", raw: "1", values: { ...defaults, l1_range: range }, w: 96, h: 34, nowMs: 0 });
+  cards.crst(ctx, { name: byKey.l1_rate.n, value: "1", raw: "1", values: { ...defaults, l1_range: range }, w: 96, h: 34, nowMs: 0 });
   check(printed.includes(want), `LFO 1 rate card at Range ${range} reads ${want} (${printed.join(" | ")})`);
 }
 

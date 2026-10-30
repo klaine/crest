@@ -29,7 +29,7 @@ Shift+jog-click opens the section picker at the level labels: Main, Presets, Per
 | Level | Knob 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
 | **Main** (root) | Cut | Res | Env1 | PreOD | ae Atk | ae Dec | ae Sus | ae Rel |
-| Perform | An1 | An2 | An1Md | An2Md | Vol | Drift | OPhs | ArpOn |
+| Perform | An1 | An2 | An1Md | An2Md | Vol | Drift | ArpOn | Scale |
 | Macros | M1 | M2 | M3 | M4 | M5 | M6 | M7 | M8 |
 | Osc N | Wave | Table | Shape | Dens | Crse | Fine | VSync | Level (`mx_oN`) |
 | Osc N Mod | ShSrc | ShMod | DnDet | – | PEnv | PLfo | – | – |
@@ -41,8 +41,8 @@ Shift+jog-click opens the section picker at the level labels: Main, Presets, Per
 | LFO 1 / 2 Fade | Fade | FMode | Dly | MTrig | – | – | – | – |
 | LFO 3 / 4 | Wave | Rate | Sync | Phase | Slew | Mode | Fade | Dly |
 
-FadeSync (LFO 1/2) and Repeats / Fade Mode (LFO 3/4) have no knob: chain_params is within ~250 bytes of its
-31 KiB limit. They are saved in patches and set from the web UI.
+FadeSync (LFO 1/2) and Repeats / Fade Mode (LFO 3/4) have no knob: chain_params is close to its
+31 KiB limit (the build prints its size). They are saved in patches and set from the web UI.
 | Matrix Edit | Src1 | Src2 | Dest | Depth | Slot | Clear | – | – |
 | Macro Edit | Dst1 | Amt1 | Dst2 | Amt2 | Dst3 | Amt3 | Dst4 | Amt4 |
 | Voice | Mode | Unis | UDet | Sprd | Glide | GMode | Bend | Oct |

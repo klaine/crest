@@ -118,7 +118,7 @@ The LFO 3/4 copies of Range, MonoTrig and FadeSync exist only to keep the four L
 | `mac_d1..4`, `mac_a1..4` | proxies | as raw | – | ✓ |
 
 ## 8. Arpeggiator ([09](09-arpeggiator.md))
-`arp_on`, `arp_mode`, `arp_oct`, `arp_rhy`, `arp_rate`, `arp_gate` (default 0.5), `arp_swing` (default 0), `arp_latch`, `arp_ksync` (default On), `arp_vel`. All are CP.
+`arp_on`, `arp_mode`, `arp_oct`, `arp_rhy`, `arp_rate`, `arp_gate` (default 0.5), `arp_swing` (default 0), `arp_latch`, `arp_ksync` (default On), `arp_vel`, `arp_scale` (default Off). All are CP.
 
 ## 9. Effects ([10](10-effects.md))
 The CP effect keys and their non-zero defaults:
