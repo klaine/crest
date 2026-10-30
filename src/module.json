@@ -2,7 +2,7 @@
   "id": "crest",
   "name": "Crest",
   "abbrev": "CRST",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "api_version": 2,
   "description": "8-voice hybrid polysynth: 3 oscillators, multimode filter, envelopes and effects",
   "author": "AI & Klaine",
