@@ -285,14 +285,14 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(2px); }
 
 /* ---------------------------------------------------------------- player (standalone) */
 .player {
-  position: sticky; bottom: 0; z-index: 9; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: stretch;
+  position: sticky; bottom: 0; z-index: 9; display: grid; grid-template-columns: auto 1fr; grid-template-areas: "ctl ctl" "strips keys"; gap: 8px 14px; align-items: stretch;
   padding: 10px 18px 12px; background: linear-gradient(#1c1d20, #141416); border-top: 1px solid #000; box-shadow: 0 -1px 0 #2c2d31;
 }
-.strips { display: flex; gap: 10px; }
+.strips { grid-area: strips; display: flex; gap: 10px; }
 .strip-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .strip { position: relative; width: 20px; flex: 1; min-height: 56px; background: var(--well); border: 1px solid #000; border-radius: 6px; touch-action: none; cursor: ns-resize; }
 .strip i { position: absolute; left: 2px; right: 2px; height: 6px; border-radius: 2px; background: var(--trace); }
-.keys { position: relative; height: 96px; user-select: none; -webkit-user-select: none; touch-action: none; min-width: 0; }
+.keys { grid-area: keys; position: relative; height: 96px; user-select: none; -webkit-user-select: none; touch-action: none; min-width: 0; }
 .key { position: absolute; top: 0; border: 1px solid #0008; border-radius: 0 0 6px 6px; cursor: pointer; }
 .key:not(.black) { height: 100%; background: #e9ebe3; z-index: 1; }
 .key.black { height: 60%; background: #22251d; z-index: 2; }
@@ -301,13 +301,15 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(2px); }
 .key .hint { position: absolute; top: 5px; left: 0; right: 0; text-align: center; font: 9px var(--mono); color: #9a968d; pointer-events: none; }
 .key.black .hint { color: #6a6c73; }
 @media (hover: none) { .key .hint, .hint-text { display: none; } }
-.player-ctl { display: flex; flex-direction: column; gap: 6px; justify-content: center; min-width: 170px; }
+.player-ctl { grid-area: ctl; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+.player-ctl .sel { flex-direction: row; align-items: center; gap: 6px; }
+.player-ctl input[type="number"] { width: 64px; }
 .player-ctl .row { align-items: center; }
 .oct { font: 12px var(--mono); min-width: 28px; text-align: center; }
 .chk { flex-direction: row; align-items: center; gap: 6px; }
-.hint-text { margin: 0; font-size: 10px; color: var(--dim); }
+.hint-text { margin: 0 0 0 auto; font-size: 10px; color: var(--dim); }
 @media (max-width: 900px) {
-  .player { grid-template-columns: 1fr; position: static; }
+  .player { grid-template-columns: 1fr; grid-template-areas: "ctl" "keys"; position: static; }
   .strips { display: none; }
 }
 
