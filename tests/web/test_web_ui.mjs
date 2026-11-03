@@ -20,9 +20,17 @@ const meta = JSON.parse(fs.readFileSync(path.join(ROOT, "build/ui/ui_meta.json")
 const presets = JSON.parse(fs.readFileSync(path.join(ROOT, "build/ui/ui_presets.json"), "utf8"));
 
 // ---- data
-check(meta.names.length === presets.length, "one preset row per name");
-check(meta.banks.reduce((n, b) => n + b[2], 0) === meta.names.length, "banks cover every patch");
-check(meta.banks.every((b, i) => i === 0 || b[1] === meta.banks[i - 1][1] + meta.banks[i - 1][2]), "banks are contiguous");
+const lib = meta.library;
+check(lib.v === 1 && lib.presets.length === presets.length, "one library row per preset row");
+check(lib.banks[0].id === "crest" && lib.presets[0].name === "Init Saw", "the Crest bank comes first");
+const cats = new Set(lib.categories.map((c) => c.id)), banks = new Set(lib.banks.map((b) => b.id));
+check(lib.presets.every((p) => cats.has(p.cat) && banks.has(p.bank)), "every patch has a listed category and bank");
+check(lib.categories.every((c) => lib.presets.some((p) => p.cat === c.id)), "no empty category");
+check(lib.presets.every((p, i) => i === 0 || lib.banks.findIndex((b) => b.id === p.bank) >= lib.banks.findIndex((b) => b.id === lib.presets[i - 1].bank)),
+  "banks are contiguous");
+check(lib.peakCategories.length === 15 && lib.peakCategories.every((c) => lib.categoryLabels[c]),
+  "Peak category bytes map to Crest's categories");
+check(lib.categories.every((c) => lib.categoryLabels[c.id] === c.label), "the labels agree");
 check(meta.rhythms.length === 33, "33 arp rhythms");
 check(meta.wt.length === meta.tables.length, "a preview per wavetable");
 for (let i = 0; i < presets.length; i++) {

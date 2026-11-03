@@ -1,5 +1,6 @@
 {
  "name": "Three Saws",
+ "category": "poly",
  "values": {
   "o1_wave": "Saw",
   "o2_wave": "Saw",

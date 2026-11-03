@@ -2,14 +2,15 @@
  *
  *  home    the first page of the root level: patch name, the filter response and the amp envelope,
  *          redrawn live while the eight root knobs (Cut Res Env1 PreOD, A D S R) turn.
- *  browse  the factory-patch browser: which bank you are in, where in it, and the patch name.
+ *  browse  the factory-patch browser: the category (or the bank, for all patches), where in it, the
+ *          patch name, and where the patch sits among the banks.
  *
  * One overlay serves both pages: the host hands the browser page a `preset` object and the home
  * page none. drawPage gets values, never reads (Schwung docs, "Custom UI pages").
  */
 (function () {
   /* BEGIN GENERATED META */
-  var META = {"banks":[["Crest",0,11]],"types":["LP24","LP12","BP12","BP6","HP24","HP12"]};
+  var META = {"banks":[["Crest",0,11]],"cats":["Init","Bass","Lead","Pad","Keys","Poly","Bell","SFX","Classic"],"types":["LP24","LP12","BP12","BP6","HP24","HP12"]};
   /* END GENERATED META */
 
   function num(v) {
@@ -116,11 +117,23 @@
   function drawBrowser(ctx, o) {
     var W = ctx.width || 128, H = ctx.height || 40;
     var p = o.preset || {};
-    var index = num(p.index) || 0, count = num(p.count) || 0;
+    /* p.index and p.count are the position in the chosen category (pb_index, pb_count); the patch
+     * itself is `preset`, and pb_cat the category (0 = all patches, then META.cats in order). */
+    var values = o.values || {};
+    var cat = Math.round(val(values, "pb_cat", 0));
+    var index = Math.round(val(values, "preset", num(p.index) || 0));
     var bk = bankOf(index);
-    var bankName = bk ? bk.b[0] : "Factory";
-    var pos = bk ? (index - bk.b[1] + 1) + "/" + bk.b[2] : (index + 1) + "/" + count;
-    ctx.print(0, 0, fit(ctx, bankName.toUpperCase(), W - tw(ctx, pos) - 4), 1);
+    var label, pos;
+    if (cat > 0 && META.cats && META.cats[cat - 1]) {
+      label = META.cats[cat - 1];
+      pos = ((num(p.index) || 0) + 1) + "/" + (num(p.count) || 0);
+    } else {
+      label = bk ? bk.b[0] : "Factory";
+      pos = bk ? (index - bk.b[1] + 1) + "/" + bk.b[2] : (index + 1) + "/" + (num(p.count) || 0);
+    }
+    var count = 0;
+    for (var b = 0; b < (META.banks || []).length; b++) count += META.banks[b][2];
+    ctx.print(0, 0, fit(ctx, label.toUpperCase(), W - tw(ctx, pos) - 4), 1);
     ctx.print(W - tw(ctx, pos), 0, pos, 1);
     ctx.fillRect(0, 9, W, 1, 1);
     /* the name, framed when the browser is entered (the wheel is browsing) */

@@ -98,6 +98,8 @@ typedef struct crest_inst {
     float v[P_COUNT];
     char name[24];
     int preset_idx;
+    int browse_cat;     /* pb_cat: 0 = all patches, n = CREST_BROWSE_CATS[n - 1] */
+    int browse_last;    /* the factory patch loaded last: browsing continues from it after a state load */
     int slot;           /* index in the instance pool (the Peak bank slot, peak_bank.c) */
     int syx_cur;        /* patch of the loaded Peak bank in use, -1 for none */
     int syx_vol_set;    /* its solved loudness has been applied */

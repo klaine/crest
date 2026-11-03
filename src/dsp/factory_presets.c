@@ -723,3 +723,21 @@ const float CREST_FACTORY_VALUES[][P_COUNT] = {
         1.0f, 0.0f, 0.0f,
     },
 };
+
+const uint16_t CREST_BROWSE_ORDER[] = {
+    0, 3, 10, 5, 9, 2, 4, 1, 6, 7, 8,
+};
+
+const crest_browse_cat_t CREST_BROWSE_CATS[] = {
+    {"Init", 0, 1},
+    {"Bass", 1, 2},
+    {"Lead", 3, 2},
+    {"Pad", 5, 1},
+    {"Keys", 6, 1},
+    {"Poly", 7, 1},
+    {"Bell", 8, 1},
+    {"SFX", 9, 1},
+    {"Classic", 10, 1},
+};
+const int CREST_BROWSE_CAT_COUNT = 9;
+const char CREST_BROWSE_CATS_JSON[] = "[{\"index\":0,\"label\":\"All (11)\"},{\"index\":1,\"label\":\"Init (1)\"},{\"index\":2,\"label\":\"Bass (2)\"},{\"index\":3,\"label\":\"Lead (2)\"},{\"index\":4,\"label\":\"Pad (1)\"},{\"index\":5,\"label\":\"Keys (1)\"},{\"index\":6,\"label\":\"Poly (1)\"},{\"index\":7,\"label\":\"Bell (1)\"},{\"index\":8,\"label\":\"SFX (1)\"},{\"index\":9,\"label\":\"Classic (1)\"}]";

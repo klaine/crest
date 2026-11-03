@@ -19,6 +19,7 @@ Milestones M0 and M1 of [15](15-roadmap.md), plus the effects chain from M4 (por
 | Effects: distortion, chorus, delay (tempo sync), reverb | Done, adapted from Amino's `fx.c` |
 | State blob, 11 factory presets, `preset` browser | Done |
 | Move pages: Main, Osc 1-3, Mixer, Filter, 3 envelopes, Voice, 4 effects, Factory Patches | Done (host knob grid) |
+| Patch categories: Patch Category page (`pb_cats`/`pb_cat`), Factory Patches steps through one (`pb_index`/`pb_count`); the Remote UI's shared browser (`src/web/patches.js`) | Done (November 2026); not seen on hardware |
 | Tests: contract validator, 998 native checks (UBSan), benchmark, WAV renderer | Done |
 
 Build output: `crest-module.tar.gz` (29 KB), `dsp.so` 64 KB stripped. `chain_params` is 12.4 KB (limit 32 KiB), `ui_hierarchy` 3.4 KB.

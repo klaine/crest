@@ -49,6 +49,7 @@ if (fs.existsSync(syxPath)) {
   const syx = fs.readFileSync(syxPath);
   new Uint8Array(x.memory.buffer, x.wa_syx(), syx.length).set(syx);
   check(x.wa_syx_scan(syx.length) === 128, "128 patches in a Peak bank");
+  check(x.wa_syx_category(0) >= 0 && x.wa_syx_category(0) <= 14 && x.wa_syx_category(128) === -1, "category bytes");
   const meta = JSON.parse(fs.readFileSync(path.join(ROOT, "build/ui/ui_meta.json"), "utf8"));
   const bank = JSON.parse(fs.readFileSync(path.join(ROOT, "presets/peak/peak_factory_ban.json"), "utf8")).presets;
   const np = x.wa_nparams();

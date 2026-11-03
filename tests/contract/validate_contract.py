@@ -108,13 +108,23 @@ for lid, lv in levels.items():
         elif p.get("key") not in keyset:
             err("%s: param %r is not in chain_params" % (lid, p.get("key")))
     for sel in ("list_param", "count_param", "name_param"):
-        if sel in lv and sel != "name_param" and lv[sel] not in keyset | {"preset_count"}:
+        if sel in lv and sel != "name_param" and lv[sel] not in keyset | {"preset_count", "pb_index", "pb_count"}:
             err("%s: %s %r unknown" % (lid, sel, lv[sel]))
     if "navigate_to" in lv and lv["navigate_to"] not in levels:
         err("%s: navigate_to unknown level" % lid)
 for lid in levels:
     if lid not in reachable:
         err("level %r is not reachable from root" % lid)
+# The patch browser: Factory Patches steps through the category that Patch Category picks (params.c pb_*),
+# and the browse page carries pb_cat to the Remote UI.
+fac, cat = levels.get("factory", {}), levels.get("category", {})
+if (fac.get("list_param"), fac.get("count_param"), fac.get("name_param")) != ("pb_index", "pb_count", "preset_name"):
+    err("factory: the browser must be pb_index / pb_count / preset_name")
+if (cat.get("items_param"), cat.get("select_param"), cat.get("navigate_to")) != ("pb_cats", "pb_cat", "factory"):
+    err("category: must pick pb_cat from pb_cats and land on factory")
+browse = next((e for e in cp if e["key"] == "browse"), {})
+if "pb_cat" not in browse.get("extra_keys", []):
+    err("browse: extra_keys must carry pb_cat (the Remote UI follows Move's category through it)")
 if minified(cp) + minified(uh) >= 64 * 1024:
     err("chain_params + ui_hierarchy exceed 64 KiB")
 

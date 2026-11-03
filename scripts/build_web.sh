@@ -87,7 +87,7 @@ echo "== site"
 SITE=build/site
 rm -rf "$SITE"
 mkdir -p "$SITE/assets/ui" "$SITE/assets/engine"
-cp src/web/*.js src/web/style.css build/ui/ui_meta.json build/ui/ui_presets.json "$SITE/assets/ui/"
+cp src/web/*.js src/web/*.css build/ui/ui_meta.json build/ui/ui_presets.json "$SITE/assets/ui/"
 cp web/engine.js web/worklet.js web/peak_worker.js build/crest.wasm "$SITE/assets/engine/"
 # The page is web_ui.html without the device bridge, so it boots the browser engine.
 "$PY" - src/web_ui.html "$SITE/index.html" <<'PYEOF'

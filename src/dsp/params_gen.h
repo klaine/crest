@@ -405,4 +405,11 @@ extern const int CREST_FACTORY_COUNT;
 extern const char *const CREST_FACTORY_NAMES[];
 extern const float CREST_FACTORY_VALUES[][P_COUNT];
 
+/* The browse view (pb_*): factory indices grouped by category, and the Category page's list. */
+typedef struct { const char *label; uint16_t first, count; } crest_browse_cat_t;
+extern const uint16_t CREST_BROWSE_ORDER[];
+extern const crest_browse_cat_t CREST_BROWSE_CATS[];
+extern const int CREST_BROWSE_CAT_COUNT;
+extern const char CREST_BROWSE_CATS_JSON[];
+
 #endif

@@ -2,7 +2,7 @@
  * converting and levelling a bank never touches the audio thread.
  *
  *   in:  {t:"import", wasm: ArrayBuffer, bytes: ArrayBuffer, file}
- *   out: {t:"bank", file, patches:[{name, values: Float32Array}]}   right after conversion
+ *   out: {t:"bank", file, patches:[{name, category, values: Float32Array}]}   right after conversion
  *        {t:"level", i, vol}                                         as each patch's loudness is solved
  *        {t:"done"} | {t:"error", message}
  *
@@ -36,7 +36,8 @@ self.onmessage = async (e) => {
     const patches = [];
     for (let i = 0; i < n; i++) {
       const len = x.wa_syx_patch(i);
-      patches.push({ name: readName(len), values: new Float32Array(x.memory.buffer, x.wa_vals(), np).slice() });
+      patches.push({ name: readName(len), category: x.wa_syx_category(i),
+        values: new Float32Array(x.memory.buffer, x.wa_vals(), np).slice() });
     }
     self.postMessage({ t: "bank", file: d.file, patches });
     for (let i = 0; i < n; i++) {

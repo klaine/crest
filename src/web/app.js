@@ -6,6 +6,7 @@ import { h } from "./controls.js";
 import { reading } from "./format.js";
 import { buildPanel } from "./panel.js";
 import { scope } from "./viz.js";
+import { mountPatches } from "./patches.js";
 
 const here = new URL(".", import.meta.url).href;
 
@@ -17,14 +18,15 @@ async function fetchJson(url) {
 
 /* ------------------------------------------------------------------ the screen */
 
+/* The patch screen is the header's name area (patches.js): the browse scope and position above the
+ * name, the patch's category and bank below it, and a touched parameter's reading for a moment. */
 function buildScreen(ui) {
-  const { store, meta } = ui;
-  const top = h("div", { class: "scr-top" });
-  const big = h("div", { class: "scr-big" });
-  const sub = h("div", { class: "scr-sub" });
-  const el = h("div", { class: "screen", role: "status", "aria-live": "polite" }, top, big, sub);
-  let focus = null, until = 0, timer = 0;
-  const bankOf = (i) => meta.banks.find((b) => i >= b[1] && i < b[1] + b[2]);
+  const { store } = ui;
+  const top = h("span", { class: "scr-top" });
+  const big = h("span", { class: "scr-big" });
+  const sub = h("span", { class: "scr-sub" });
+  const el = h("span", { class: "screen", role: "status", "aria-live": "polite" }, top, big, sub);
+  let focus = null, until = 0, timer = 0, info = null, where = "";
   const paint = () => {
     const now = performance.now();
     if (focus && now < until) {
@@ -37,11 +39,15 @@ function buildScreen(ui) {
     }
     focus = null;
     el.classList.remove("param");
-    const i = Number(store.extra.preset ?? -1);
-    const b = bankOf(i);
-    top.textContent = b ? `${b[0]} · ${i - b[1] + 1}/${b[2]}` : store.extra.user_bank || "CREST";
+    top.textContent = info ? `${info.scope} · ${info.pos || "–"}/${info.count}${info.status ? " · " + info.status : ""}` : "CREST";
     big.textContent = store.extra.preset_name || "Init Saw";
-    sub.textContent = ui.link?.kind === "device" ? "Move · " + ((window.schwungRemote && window.schwungRemote.component) || "synth") : "Browser engine";
+    sub.textContent = where || (ui.link?.kind === "device" ? "Move · " + ((window.schwungRemote && window.schwungRemote.component) || "synth") : "Browser engine");
+  };
+  /** The header's state: { scope, pos, count, status }, and the patch's "category · bank". */
+  el.setInfo = (i, w) => {
+    info = i;
+    where = w;
+    if (!focus) paint();
   };
   ui.showParam = (key, hold = 1600) => {
     focus = key;
@@ -52,7 +58,6 @@ function buildScreen(ui) {
   };
   store.onAny((keys) => {
     if (focus && keys.includes(focus)) paint();
-    else if (keys.includes("preset_name") || keys.includes("preset") || keys.includes("user_bank")) paint();
     else if (store.touched && keys.includes(store.touched)) ui.showParam(store.touched);
   });
   paint();
@@ -63,7 +68,7 @@ function buildScreen(ui) {
 
 /* Peak SysEx banks converted in the browser by web/peak_worker.js (crest.wasm: the same converter and
  * loudness solve as the factory banks). Kept in this browser's storage as differences from the
- * defaults; the Move loads its own from a folder instead (see the Patches dialog note). */
+ * defaults; the Move loads its own from a folder instead (see the patch browser's note). */
 const USER_KEY = "crest.userBanks.v1";
 
 function userBanks(ui) {
@@ -111,7 +116,8 @@ function userBanks(ui) {
         worker.onmessage = (e) => {
           const d = e.data;
           if (d.t === "bank") {
-            bank = { name: d.file.replace(/\.syx$/i, ""), patches: d.patches.map((p) => ({ name: p.name, d: compact(p.values) })) };
+            const cats = meta.library.peakCategories;
+            bank = { name: d.file.replace(/\.syx$/i, ""), patches: d.patches.map((p) => ({ name: p.name, cat: cats[p.category] || "", d: compact(p.values) })) };
             banks.push(bank);
             save();
             onChange();
@@ -136,110 +142,10 @@ function userBanks(ui) {
   return api;
 }
 
-/* ------------------------------------------------------------------ patch browser */
-
-function buildBrowser(ui, loadPreset) {
-  const { meta, store } = ui;
-  const user = ui.user;
-  const search = h("input", { type: "search", placeholder: "Search patches", "aria-label": "Search patches" });
-  const bankBar = h("div", { class: "banks", role: "tablist", "aria-label": "Banks" });
-  const list = h("div", { class: "plist", role: "listbox", "aria-label": "Patches" });
-  const close = h("button", { type: "button", class: "chip", "aria-label": "Close", onclick: () => dlg.close() }, "Close");
-  const file = h("input", { type: "file", accept: ".syx,application/octet-stream", hidden: true, multiple: true });
-  const status = h("span", { class: "dim small", role: "status" });
-  const device = ui.link?.kind === "device" || !!window.schwungRemote;
-  const load = h("button", { type: "button", class: "chip", onclick: () => file.click(), hidden: device }, "Load Peak .syx…");
-  const note = h("p", { class: "dim small" }, device
-    ? "Peak banks are converted from Novation Peak SysEx. On the Move, put your own .syx banks anywhere under UserLibrary/Crest and open them from the Peak Banks page."
-    : "Peak banks are converted from Novation Peak SysEx. Load your own Peak .syx bank or patch to convert it here; it stays in this browser.");
-  const dlg = h("dialog", { class: "browser", "aria-label": "Patches" },
-    h("div", { class: "browser-head" }, h("h2", {}, "Patches"), search, load, file, close), bankBar, list,
-    h("div", { class: "browser-foot" }, note, status));
-  /* tab = ["f", factory bank index] or ["u", user bank index] */
-  let tab = ["f", 0], cur = null; // cur: the user patch last loaded, [bank, index]
-  file.addEventListener("change", async () => {
-    const files = [...file.files];
-    file.value = "";
-    for (const f of files) {
-      status.textContent = "Converting " + f.name + "…";
-      try {
-        const b = await user.importFile(f);
-        tab = ["u", b];
-        render();
-      } catch (err) {
-        status.textContent = "";
-        ui.toast("Could not load " + f.name + ": " + err.message);
-      }
-    }
-  });
-  user.onChange = () => { if (dlg.open) render(); };
-  const item = (num, name, selected, onpick) => h("button", {
-    type: "button", role: "option", class: "pitem", "aria-selected": String(selected),
-    onclick: () => { onpick(); render(); }, ondblclick: () => dlg.close(),
-  }, h("span", { class: "pnum" }, num), name);
-  const pickUser = (b, i) => {
-    cur = [b, i];
-    ui.loadState(user.state(b, i));
-    store.ingest({ user_bank: `${user.banks[b].name} · ${i + 1}/${user.banks[b].patches.length}` });
-  };
-  function render() {
-    const q = search.value.trim().toLowerCase();
-    const sel = Number(store.extra.preset ?? -1);
-    bankBar.textContent = "";
-    meta.banks.forEach((b, i) => bankBar.append(h("button", {
-      type: "button", role: "tab", class: "tab", "aria-selected": String(!q && tab[0] === "f" && tab[1] === i),
-      onclick: () => { tab = ["f", i]; search.value = ""; render(); },
-    }, b[0], h("span", { class: "dim" }, " " + b[2]))));
-    user.banks.forEach((b, i) => bankBar.append(h("span", { class: "tab-wrap" },
-      h("button", {
-        type: "button", role: "tab", class: "tab user", "aria-selected": String(!q && tab[0] === "u" && tab[1] === i),
-        onclick: () => { tab = ["u", i]; search.value = ""; render(); },
-      }, b.name, h("span", { class: "dim" }, " " + b.patches.length)),
-      h("button", {
-        type: "button", class: "tab-x", "aria-label": "Remove " + b.name, title: "Remove this bank",
-        onclick: () => { user.remove(i); if (tab[0] === "u") tab = ["f", 0]; cur = null; render(); },
-      }, "×"))));
-    list.textContent = "";
-    let n = 0;
-    if (q) {
-      meta.names.forEach((nm, i) => { if (nm.toLowerCase().includes(q)) { n++; list.append(item(String(i), nm, i === sel, () => loadPreset(i))); } });
-      user.banks.forEach((b, bi) => b.patches.forEach((p, i) => {
-        if (p.name.toLowerCase().includes(q)) { n++; list.append(item(b.name.slice(0, 3) + (i + 1), p.name, !!cur && cur[0] === bi && cur[1] === i, () => pickUser(bi, i))); }
-      }));
-    } else if (tab[0] === "f") {
-      const b = meta.banks[tab[1]];
-      for (let i = b[1]; i < b[1] + b[2]; i++) { n++; list.append(item(String(i), meta.names[i], i === sel, () => loadPreset(i))); }
-    } else {
-      const b = user.banks[tab[1]];
-      if (b) b.patches.forEach((p, i) => { n++; list.append(item(String(i + 1), p.name, !!cur && cur[0] === tab[1] && cur[1] === i, () => pickUser(tab[1], i))); });
-    }
-    if (!n) list.append(h("p", { class: "dim" }, "No patch matches."));
-    const busy = user.banks.find((b) => b.levelled !== undefined && b.levelled < b.patches.length);
-    status.textContent = busy ? `Levelling ${busy.name}: ${busy.levelled} of ${busy.patches.length}` : "";
-  }
-  search.addEventListener("input", render);
-  ui.openBrowser = () => {
-    const sel = Number(store.extra.preset ?? 0);
-    if (sel >= 0) {
-      const b = meta.banks.findIndex((x) => sel >= x[1] && sel < x[1] + x[2]);
-      if (b >= 0) tab = ["f", b];
-    }
-    render();
-    dlg.showModal();
-    list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "center" });
-    search.focus();
-  };
-  return dlg;
-}
-
 /* ------------------------------------------------------------------ header */
 
-function buildHeader(ui, loadPreset, screen) {
-  const { store, meta } = ui;
-  const step = (d) => {
-    const cur = Number(store.extra.preset ?? 0);
-    loadPreset((cur + d + meta.names.length) % meta.names.length);
-  };
+function buildHeader(ui, nav) {
+  const { store } = ui;
   const undo = h("button", { type: "button", class: "chip", title: "Undo (⌘Z)", onclick: () => store.undo() }, "Undo");
   const redo = h("button", { type: "button", class: "chip", title: "Redo (⇧⌘Z)", onclick: () => store.redo() }, "Redo");
   store.onAny(() => { undo.disabled = !store.undoStack.length; redo.disabled = !store.redoStack.length; });
@@ -267,12 +173,9 @@ function buildHeader(ui, loadPreset, screen) {
 
   return h("header", { class: "top" },
     h("div", { class: "brand" }, h("span", { class: "logo" }, "CREST"), h("span", { class: "tag" }, "hybrid polysynth")),
-    h("div", { class: "nav" },
-      h("button", { type: "button", class: "chip", "aria-label": "Previous patch", onclick: () => step(-1) }, "◀"),
-      screen,
-      h("button", { type: "button", class: "chip", "aria-label": "Next patch", onclick: () => step(1) }, "▶")),
+    nav,
     h("div", { class: "actions" },
-      h("button", { type: "button", class: "chip primary", onclick: () => ui.openBrowser() }, "Patches"),
+      h("button", { type: "button", class: "chip primary", onclick: () => nav.open() }, "Patches"),
       h("button", { type: "button", class: "chip", onclick: init }, "Init"),
       undo, redo,
       h("button", { type: "button", class: "chip", onclick: save, title: "Download this patch" }, "Save"),
@@ -324,7 +227,7 @@ async function boot() {
     store.command("preset", i);
     store.undoStack.length = store.redoStack.length = 0;
     if (ui.link?.kind === "device") store.apply(await presetValues(i), { send: false });
-    store.ingest({ preset: String(i), preset_name: meta.names[i], user_bank: "" }, false, true);
+    store.ingest({ preset: String(i), preset_name: meta.library.presets[i].name }, false, true);
     if (ui.link?.kind === "device") store.holdPatch(PATCH_HOLD_MS);
   };
   ui.loadState = (st) => {
@@ -333,17 +236,17 @@ async function boot() {
     if (ui.link?.kind === "device") store.holdPatch(PATCH_HOLD_MS);
     store.command("state", JSON.stringify(st));
     store.apply(vals, { send: false });
-    store.ingest({ preset_name: st.name || "Init", preset: "-1", user_bank: "" }, false, true);
+    store.ingest({ preset_name: st.name || "Init", preset: "-1" }, false, true);
     if (ui.link?.kind === "device") store.holdPatch(PATCH_HOLD_MS);
   };
 
   ui.user = userBanks(ui);
   const screen = buildScreen(ui);
-  const header = buildHeader(ui, loadPreset, screen);
+  const nav = mountPatches(ui, { loadPreset, screen });
+  const header = buildHeader(ui, nav);
   const panel = buildPanel(ui);
-  const browser = buildBrowser(ui, loadPreset);
   root.textContent = "";
-  root.append(header, panel, browser);
+  root.append(header, panel);
 
   window.addEventListener("keydown", (e) => {
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;

@@ -41,7 +41,7 @@ def ui_module(path):
 
 def payload_files():
     meta = json.loads((GEN / "ui_meta.json").read_text(encoding="utf-8"))
-    assert [b[0] for b in meta["banks"]] == ["Crest"], "build/web has more than the Crest bank: run gen.py --no-peak"
+    assert [b["label"] for b in meta["library"]["banks"]] == ["Crest"], "build/web has more than the Crest bank: run gen.py --no-peak"
     files = {}
     for p in sorted(UI.glob("*.js")):
         files["assets/ui/" + p.name] = ui_module(p)
@@ -82,10 +82,10 @@ def main():
     payload = base64.b64encode(gzip.compress(packed, 9, mtime=0)).decode()
 
     page = (ROOT / "src" / "web_ui.html").read_text(encoding="utf-8")
-    css = (UI / "style.css").read_text(encoding="utf-8")
+    css = (UI / "style.css").read_text(encoding="utf-8") + (UI / "presetbrowser.css").read_text(encoding="utf-8")
     embed = (WEB / "embed.js").read_text(encoding="utf-8")
     assert "</style" not in css.lower() and "</script" not in embed.lower()
-    link = '<link rel="stylesheet" href="assets/ui/style.css">'
+    link = '<link rel="stylesheet" href="assets/ui/style.css">\n<link rel="stylesheet" href="assets/ui/presetbrowser.css">'
     scripts = ('<script src="/static/schwung-remote-api.js"></script>\n'
                '<script type="module" src="assets/ui/app.js"></script>')
     assert page.count(link) == 1 and page.count(scripts) == 1, "web_ui.html changed: update build_single.py"

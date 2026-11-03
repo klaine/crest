@@ -106,13 +106,25 @@ for (const [w, h] of [[128, 40], [128, 34], [120, 44]]) {
   check(home.outsideCount() === 0 && home.px.some((v) => v), `home page ${w}x${h} draws inside its band`);
   if (pngDir && w === 128 && h === 40) png(path.join(pngDir, "page_home.png"), home.px, w, h);
   // the bank is 11 patches committed, 540 with the local Peak banks
-  const n = meta.names.length, mid = Math.min(200, n - 1);
+  const names = meta.library.presets.map((p) => p.name);
+  const n = names.length, mid = Math.min(200, n - 1);
   for (const index of new Set([0, Math.min(11, n - 1), mid, n - 1])) {
     const br = makeCtx(w, h);
-    canvas.canvas_overlay.drawPage(br.ctx, { values: {}, preset: { name: meta.names[index], index, count: n, entered: index === mid } });
+    canvas.canvas_overlay.drawPage(br.ctx, { values: { preset: String(index) }, preset: { name: names[index], index, count: n, entered: index === mid } });
     check(br.outsideCount() === 0 && br.px.some((v) => v), `browser ${w}x${h} at ${index} draws inside its band`);
     if (pngDir && w === 128 && h === 40 && index === mid) png(path.join(pngDir, "page_browser.png"), br.px, w, h);
   }
+  // in a category (pb_cat), the page names it and counts within it
+  const cat = meta.library.categories.findIndex((c) => c.id === "bass") + 1;
+  const bass = meta.library.presets.map((p, i) => (p.cat === "bass" ? i : -1)).filter((i) => i >= 0);
+  const br = makeCtx(w, h);
+  const printed = [];
+  const print = br.ctx.print;
+  br.ctx.print = (x, y, t, c) => { printed.push(String(t)); print(x, y, t, c); };
+  canvas.canvas_overlay.drawPage(br.ctx, { values: { preset: String(bass[1]), "synth:pb_cat": String(cat) },
+    preset: { name: names[bass[1]], index: 1, count: bass.length, entered: true } });
+  check(printed.includes("BASS") && printed.includes("2/" + bass.length), `browser ${w}x${h} in Bass reads BASS 2/${bass.length} (${printed.join(" | ")})`);
+  check(br.outsideCount() === 0, `browser ${w}x${h} in a category draws inside its band`);
 }
 // a home page with no values at all (the first frame before any read answered)
 const empty = makeCtx(128, 40);

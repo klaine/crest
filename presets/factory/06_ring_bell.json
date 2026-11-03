@@ -1,5 +1,6 @@
 {
  "name": "Ring Bell",
+ "category": "bell",
  "values": {
   "o1_wave": "Sine",
   "o2_wave": "Sine",

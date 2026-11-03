@@ -122,6 +122,12 @@ EXPORT int wa_syx_patch(int i) {
     return n;
 }
 
+/* Patch i's Peak category byte (0 None .. 14 Voc/Tune; tools/gen/params.py PEAK_CATEGORIES), or -1. */
+EXPORT int wa_syx_category(int i) {
+    if (i < 0 || i >= g_nsyx) return -1;
+    return g_syx[g_offs[i] + 32];
+}
+
 /* patch_vol for the values in wa_vals() (needs wa_init first); < 0 when no instance was free. */
 EXPORT double wa_level(int fast) {
     if (!g_api) return -1.0;

@@ -73,21 +73,26 @@ BANK_NAMES = {"Peak Factory Ban.syx": "Peak Factory A", "Peak Factory Ban (1).sy
               "Kuba Kara\u015b Sign.syx": "Kuba Karas", "Mylar Melodies'.syx": "Mylar Melodies",
               "Sean Tyas - I'm.syx": "Sean Tyas", "arc rae  Frag.syx": "arc rae"}
 BANKS = []  # [name, first index, count], filled by load_factory
+CATS = []   # each patch's category id (PM.CATEGORIES), filled by load_factory
+CAT_IDS = [c for c, _ in PM.CATEGORIES]
 
 
 def load_factory(peak=True):
     presets = [("Init Saw", {})]
     BANKS.clear()
+    CATS[:] = ["init"]
     for path in sorted(glob.glob(os.path.join(ROOT, "presets", "factory", "*.json"))):
         with open(path, "r", encoding="utf-8") as f:
             d = json.load(f)
         name = d["name"]
         assert len(name) <= 20, name
+        assert d.get("category") in CAT_IDS, "%s: category must be one of %s" % (os.path.basename(path), CAT_IDS)
         vals = {}
         for k, v in d["values"].items():
             assert k in BY_KEY, "%s: unknown key %s" % (os.path.basename(path), k)
             vals[k] = parse_value(BY_KEY[k], v)
         presets.append((name, vals))
+        CATS.append(d["category"])
     BANKS.append(["Crest", 0, len(presets)])
     peak_banks = sorted(glob.glob(os.path.join(ROOT, "presets", "peak", "*.json"))) if peak else []
     for path in peak_banks:  # tools/peak/import_banks.py
@@ -102,6 +107,8 @@ def load_factory(peak=True):
                 assert k in BY_KEY, "%s: unknown key %s" % (os.path.basename(path), k)
                 vals[k] = parse_value(BY_KEY[k], v)
             presets.append((d["name"], vals))
+            CATS.append(d.get("category", "other"))  # banks imported before categories: re-run import_banks.py
+    assert all(c in CAT_IDS for c in CATS), "unknown category"
     out = []
     for name, vals in presets:
         row = [float(p["default"]) for p in PM.PARAMS]
@@ -110,6 +117,31 @@ def load_factory(peak=True):
                 row[i] = float(vals[p["key"]])
         out.append((name, row))
     return out
+
+
+def browse_categories():
+    """[(id, label, [patch index, ...])] for the categories the bank uses, in PM.CATEGORIES order.
+
+    One list for both surfaces: Move's Category page (pb_cat 1..N) and the Remote UI's chips number
+    categories the same way.
+    """
+    return [(c, label, [i for i, x in enumerate(CATS) if x == c]) for c, label in PM.CATEGORIES if c in CATS]
+
+
+def bank_id(name):
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def library(presets):
+    """The Remote UI's patch library, in the shape of src/web/presetbrowser.js (v1)."""
+    rows = []
+    for b in BANKS:
+        for i in range(b[1], b[1] + b[2]):
+            rows.append({"name": presets[i][0], "cat": CATS[i], "bank": bank_id(b[0])})
+    return {"v": 1, "categories": [{"id": c, "label": label} for c, label, _ in browse_categories()],
+            "banks": [{"id": bank_id(b[0]), "label": b[0]} for b in BANKS], "presets": rows,
+            # for Peak banks converted in the browser: category byte -> id, and every id's label
+            "peakCategories": PM.PEAK_CATEGORIES, "categoryLabels": dict(PM.CATEGORIES)}
 
 
 # --- contract -----------------------------------------------------------------------------------
@@ -144,14 +176,18 @@ def chain_params(nfactory):
         out.append(e)
     out.append({"key": "preset", "name": "Factory Patch", "type": "int", "min": 0,
                 "max": nfactory - 1, "step": 1})
+    # The Factory Patches page steps through the chosen category with pb_index (params.c), a selector
+    # the host only gets and sets, so it has no entry here (chain_params is near its 31 KiB limit).
     # The Peak bank file browser (src/dsp/peak_bank.c reads the file on its worker thread).
     out.append({"key": "syx_file", "name": "Peak Bank", "type": "filepath", "root": "/data/UserData/UserLibrary/Crest",
                 "filter": ".syx"})
     # Module-drawn pages (src/canvas.js): the home page in front of the root knobs, and the bank browser.
     out.append({"key": "home", "name": "Crest", "type": "canvas", "canvas_script": "canvas.js", "as_page": True,
                 "page_first": True, "show_value": False, "extra_keys": ["flt_type", "preset_name"]})
+    # extra_keys: the page draws the absolute patch and the category; an as_page canvas's extras also
+    # reach the Remote UI, which is how a category chosen on Move gets to the browser.
     out.append({"key": "browse", "name": "Patches", "type": "canvas", "canvas_script": "canvas.js",
-                "as_page": True, "preset_browser": True, "show_value": False})
+                "as_page": True, "preset_browser": True, "show_value": False, "extra_keys": ["preset", "pb_cat"]})
     return out
 
 
@@ -170,12 +206,15 @@ def ui_hierarchy():
     levels = {}
     root_params = [{"key": "home"}] + [knob_entry(k) for k in PM.ROOT_KNOBS]
     root_params.append({"level": "factory", "label": "Factory Patches"})
+    root_params.append({"level": "category", "label": "Patch Category"})
     for lid, label, knobs, extra in PM.LEVELS:
         root_params.append({"level": lid, "label": label})
     levels["root"] = {"label": PM.ROOT_LABEL, "knobs": [knob_key(k) for k in PM.ROOT_KNOBS],
                       "params": root_params}
-    levels["factory"] = {"label": "Factory Patches", "list_param": "preset", "count_param": "preset_count",
+    levels["factory"] = {"label": "Factory Patches", "list_param": "pb_index", "count_param": "pb_count",
                          "name_param": "preset_name", "navigate_to": "root", "params": [{"key": "browse"}]}
+    levels["category"] = {"label": "Patch Category", "items_param": "pb_cats", "select_param": "pb_cat",
+                          "navigate_to": "factory", "params": []}
     for lid, label, knobs, extra in PM.LEVELS:
         if extra:
             levels[lid] = dict({"label": label}, **extra, params=[])
@@ -237,7 +276,7 @@ def ui_meta(presets):
         if not p["state"]:
             e["vol"] = 1  # not saved in patches (selectors, proxies)
         params.append(e)
-    return {"params": params, "banks": BANKS, "names": [n for n, _ in presets], "rhythms": rhythms(),
+    return {"params": params, "library": library(presets), "rhythms": rhythms(),
             "modSources": PM.MOD_SOURCES, "modDests": PM.MOD_DESTS, "mmSlots": PM.MM_SLOTS,
             "tables": PM.TABLE_NAMES, "wt": wavetable_previews(8, 64)}
 
@@ -262,7 +301,7 @@ def js_meta(presets):
     cards = {"keys": names, "disp": {k: disp(by[k]) for k in PM.CARD_KEYS},
              "src": PM.MOD_SOURCE_SHORT, "dst": PM.MOD_DEST_SHORT, "routes": PM.FX_ROUTES,
              "rhythms": rhythms(), "tables": PM.TABLE_NAMES, "wt": wavetable_previews(4, 32)}
-    canvas = {"banks": BANKS, "types": PM.FILTER_TYPES}
+    canvas = {"banks": BANKS, "cats": [label for _, label, _ in browse_categories()], "types": PM.FILTER_TYPES}
     return cards, canvas
 
 
@@ -296,7 +335,12 @@ def emit_header():
           "extern const char CREST_CHAIN_PARAMS[];", "extern const int CREST_CHAIN_PARAMS_LEN;",
           "extern const char CREST_UI_HIERARCHY[];", "extern const int CREST_UI_HIERARCHY_LEN;", "",
           "extern const int CREST_FACTORY_COUNT;", "extern const char *const CREST_FACTORY_NAMES[];",
-          "extern const float CREST_FACTORY_VALUES[][P_COUNT];", "", "#endif", ""]
+          "extern const float CREST_FACTORY_VALUES[][P_COUNT];", "",
+          "/* The browse view (pb_*): factory indices grouped by category, and the Category page's list. */",
+          "typedef struct { const char *label; uint16_t first, count; } crest_browse_cat_t;",
+          "extern const uint16_t CREST_BROWSE_ORDER[];", "extern const crest_browse_cat_t CREST_BROWSE_CATS[];",
+          "extern const int CREST_BROWSE_CAT_COUNT;", "extern const char CREST_BROWSE_CATS_JSON[];", "",
+          "#endif", ""]
     return "\n".join(L)
 
 
@@ -348,6 +392,21 @@ def emit_factory_c(presets):
             L.append("        " + ", ".join(cfloat(v) for v in row[i:i + 6]) + ",")
         L.append("    },")
     L += ["};", ""]
+    cats = browse_categories()
+    order, rows = [], []
+    for _c, label, idx in cats:
+        rows.append((label, len(order), len(idx)))
+        order.extend(idx)
+    items = [{"index": 0, "label": "All (%d)" % len(presets)}]
+    items += [{"index": n + 1, "label": "%s (%d)" % (label, count)} for n, (label, _f, count) in enumerate(rows)]
+    L.append("const uint16_t CREST_BROWSE_ORDER[] = {")
+    for i in range(0, len(order), 16):
+        L.append("    " + ", ".join(str(n) for n in order[i:i + 16]) + ",")
+    L += ["};", "", "const crest_browse_cat_t CREST_BROWSE_CATS[] = {"]
+    for label, first, count in rows:
+        L.append("    {%s, %d, %d}," % (cstr(label), first, count))
+    L += ["};", "const int CREST_BROWSE_CAT_COUNT = %d;" % len(rows),
+          "const char CREST_BROWSE_CATS_JSON[] = %s;" % cstr(json.dumps(items, separators=(",", ":"))), ""]
     return "\n".join(L)
 
 

@@ -323,6 +323,49 @@ static void test_presets(void) {
     api->destroy_instance(h);
 }
 
+/* The browse view behind Move's Patch Category and Factory Patches pages (pb_*). */
+static void test_browse(void) {
+    printf("browse\n");
+    void *h = mk();
+    static char got[8192];
+    CHECK((int)gp(h, "pb_cat") == 0 && (int)gp(h, "pb_count") == CREST_FACTORY_COUNT, "starts on all patches");
+    CHECK((int)gp(h, "pb_index") == 0, "on Init Saw");
+    const char *all = "[{\"index\":0,\"label\":\"All (";
+    CHECK(api->get_param(h, "pb_cats", got, sizeof got) > 0 && strncmp(got, all, strlen(all)) == 0,
+          "the category list opens with All");
+    int total = 0, bass = 0;
+    for (int c = 0; c < CREST_BROWSE_CAT_COUNT; c++) {
+        total += CREST_BROWSE_CATS[c].count;
+        if (strcmp(CREST_BROWSE_CATS[c].label, "Bass") == 0) bass = c + 1;
+    }
+    CHECK(total == CREST_FACTORY_COUNT, "every patch has one category");
+    CHECK(bass > 0, "a Bass category");
+    char v[16];
+    snprintf(v, sizeof v, "%d", bass);
+    sp(h, "pb_cat", v);
+    const crest_browse_cat_t *c = &CREST_BROWSE_CATS[bass - 1];
+    CHECK((int)gp(h, "pb_count") == c->count, "pb_count is the category's size");
+    CHECK((int)gp(h, "pb_index") == -1, "Init Saw is not a bass");
+    sp(h, "pb_index", "1");
+    int want = CREST_BROWSE_ORDER[c->first + 1];
+    CHECK((int)gp(h, "preset") == want, "pb_index loads the category's patch");
+    api->get_param(h, "preset_name", got, sizeof got);
+    CHECK(strcmp(got, CREST_FACTORY_NAMES[want]) == 0, "and its name");
+    CHECK((int)gp(h, "pb_index") == 1, "the position follows");
+    CHECK(api->get_param(h, "state", got, sizeof got) > 0 && !strstr(got, "pb_"), "the state does not carry browsing");
+    sp(h, "state", got);
+    CHECK((int)gp(h, "pb_index") == 1, "after a state load, browsing continues from the patch");
+    sp(h, "pb_index", "9999");
+    api->get_param(h, "preset_name", got, sizeof got);
+    CHECK(strcmp(got, CREST_FACTORY_NAMES[want]) == 0, "an out-of-range position loads nothing");
+    sp(h, "pb_cat", "999");
+    CHECK((int)gp(h, "pb_cat") == CREST_BROWSE_CAT_COUNT, "pb_cat clamps");
+    sp(h, "pb_cat", "0");
+    sp(h, "pb_index", "3");
+    CHECK((int)gp(h, "preset") == 3, "All addresses the bank directly");
+    api->destroy_instance(h);
+}
+
 static void test_osc(void) {
     printf("oscillators\n");
     enum { N = 44100 };
@@ -973,6 +1016,7 @@ int main(void) {
     test_params();
     test_state();
     test_presets();
+    test_browse();
     test_osc();
     test_filter();
     test_env();

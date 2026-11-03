@@ -26,7 +26,8 @@ release-style package, and it runs on a Move. See
 - **Effects:** distortion, chorus, tempo-synced delay and reverb, in any of 7 routings with dry/wet.
 - **11 factory patches:** Init Saw and 10 curated, full state save and recall. Peak banks are not bundled:
   load your own (below), or build them into a local factory set.
-- **On the Move:** a home page drawing the filter and amp envelope, a bank-aware patch browser, and cards
+- **On the Move:** a home page drawing the filter and amp envelope, a patch browser that steps through
+  the category picked on the Patch Category page (Bass, Lead, Pad and so on, Peak patches included), and cards
   that show held knobs in real units (ms, Hz, semitones, note names) with a picture where it helps
   (`src/canvas.js`, `src/cards.js`).
 - **Your own Peak banks:** load a Novation Peak `.syx` bank or patch in the browser build (Patches → Load Peak
@@ -35,7 +36,8 @@ release-style package, and it runs on a Move. See
   [plan/18-peak-import.md](plan/18-peak-import.md)).
 - **Web UI:** a Peak-style panel for every parameter (`src/web_ui.html`, `src/web/`). On a Move it opens in
   Schwung's Remote UI; standalone it runs the same engine as WebAssembly with an on-screen keyboard,
-  computer-keyboard play, Web MIDI, mod and bend strips, patch browser, undo, and patch save/load.
+  computer-keyboard play, Web MIDI, mod and bend strips, a patch browser (categories shared with the Move's
+  page, banks, favourites, search; shared with Amino and Bizar), undo, and patch save/load.
 
 ## Build and test
 Needs [zig](https://ziglang.org) (`brew install zig`) and python3. Zig is the only C compiler used.

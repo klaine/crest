@@ -290,6 +290,33 @@ void preset_load(crest_inst_t *I, int idx) {
     if (idx < 0 || idx >= CREST_FACTORY_COUNT) return;
     preset_load_values(I, CREST_FACTORY_VALUES[idx], CREST_FACTORY_NAMES[idx]);
     I->preset_idx = idx;
+    I->browse_last = idx;
+}
+
+/* ------------------------------------------------------------------ browse view */
+
+/* Move's Factory Patches page steps through one category (pb_cat), the same filter the Remote UI's
+ * header steps through. Positions index the category; `preset` stays the absolute patch index. */
+static int browse_count(const crest_inst_t *I) {
+    if (I->browse_cat <= 0) return CREST_FACTORY_COUNT;
+    return CREST_BROWSE_CATS[I->browse_cat - 1].count;
+}
+
+static int browse_preset(const crest_inst_t *I, int pos) {
+    if (I->browse_cat <= 0) return pos;
+    return CREST_BROWSE_ORDER[CREST_BROWSE_CATS[I->browse_cat - 1].first + pos];
+}
+
+/* Position of the current patch (or the factory patch loaded last) in the category; -1 when it is not
+ * in it, so the first step lands on its first patch. */
+static int browse_pos(const crest_inst_t *I) {
+    int cur = I->preset_idx >= 0 ? I->preset_idx : I->browse_last;
+    if (cur < 0 || cur >= CREST_FACTORY_COUNT) return -1;
+    if (I->browse_cat <= 0) return cur;
+    const crest_browse_cat_t *c = &CREST_BROWSE_CATS[I->browse_cat - 1];
+    for (int i = 0; i < c->count; i++)
+        if (CREST_BROWSE_ORDER[c->first + i] == cur) return i;
+    return -1;
 }
 
 int syx_apply(crest_inst_t *I) {
@@ -498,6 +525,15 @@ void params_set(crest_inst_t *I, const char *key, const char *val) {
         preset_load(I, atoi(val));
         return;
     }
+    if (strcmp(key, "pb_cat") == 0) { /* browse state, not sound: the state blob never carries it */
+        I->browse_cat = clampi(atoi(val), 0, CREST_BROWSE_CAT_COUNT);
+        return;
+    }
+    if (strcmp(key, "pb_index") == 0) {
+        int pos = atoi(val);
+        if (pos >= 0 && pos < browse_count(I)) preset_load(I, browse_preset(I, pos));
+        return;
+    }
     if (strcmp(key, "name") == 0) {
         strncpy(I->name, val, sizeof I->name - 1);
         I->name[sizeof I->name - 1] = 0;
@@ -544,6 +580,13 @@ int params_get(crest_inst_t *I, const char *key, char *buf, int buf_len) {
     }
     if (strcmp(key, "preset_name") == 0 || strcmp(key, "name") == 0)
         return copy_out(I->name, (int)strlen(I->name), buf, buf_len);
+    if (strcmp(key, "pb_cats") == 0)
+        return copy_out(CREST_BROWSE_CATS_JSON, (int)strlen(CREST_BROWSE_CATS_JSON), buf, buf_len);
+    if (strcmp(key, "pb_cat") == 0 || strcmp(key, "pb_count") == 0 || strcmp(key, "pb_index") == 0) {
+        int v = strcmp(key, "pb_cat") == 0 ? I->browse_cat : strcmp(key, "pb_count") == 0 ? browse_count(I) : browse_pos(I);
+        int n = snprintf(buf, (size_t)buf_len, "%d", v);
+        return n >= buf_len ? -1 : n;
+    }
     if (strcmp(key, "split_voices") == 0) return copy_out("", 0, buf, buf_len);
     if (strcmp(key, "syx_file") == 0) return peak_bank_path(I->slot, buf, buf_len);
 #ifdef CREST_PROFILE

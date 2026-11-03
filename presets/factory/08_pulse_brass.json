@@ -1,5 +1,6 @@
 {
  "name": "Pulse Brass",
+ "category": "classic",
  "values": {
   "o1_wave": "Pulse",
   "o1_shape": 0.35,

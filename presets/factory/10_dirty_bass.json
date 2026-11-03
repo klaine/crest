@@ -1,5 +1,6 @@
 {
  "name": "Dirty Bass",
+ "category": "bass",
  "values": {
   "v_mode": "Mono",
   "o1_wave": "Saw",

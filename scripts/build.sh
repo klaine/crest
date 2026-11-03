@@ -146,7 +146,7 @@ cp src/module.json src/help.json src/cards.js "$CANVAS" src/web_ui.html LICENSE 
 # Remote UI (Schwung's browser view of the slot): the app and its generated data
 rm -rf "$MODULE/assets"
 mkdir -p "$MODULE/assets/ui"
-cp src/web/*.js src/web/style.css build/ui/ui_meta.json build/ui/ui_presets.json "$MODULE/assets/ui/"
+cp src/web/*.js src/web/*.css build/ui/ui_meta.json build/ui/ui_presets.json "$MODULE/assets/ui/"
 
 echo "== package"
 # COPYFILE_DISABLE keeps macOS tar from adding ._ AppleDouble files

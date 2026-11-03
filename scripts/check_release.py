@@ -43,9 +43,9 @@ def main():
     assert m, "canvas.js has no GENERATED META block"
     banks = json.loads(m[1])["banks"]
     assert banks == want, "canvas.js banks are %s, want %s: build with --release" % (banks, want)
-    meta = json.loads(meta)
-    assert meta["banks"] == want and len(meta["names"]) == want[0][2], \
-        "ui_meta.json has %s: build with --release" % [b[0] for b in meta["banks"]]
+    lib = json.loads(meta)["library"]
+    assert [b["label"] for b in lib["banks"]] == ["Crest"] and len(lib["presets"]) == want[0][2], \
+        "ui_meta.json has %s: build with --release" % [b["label"] for b in lib["banks"]]
 
     names = peak_names()
     leaks = set()

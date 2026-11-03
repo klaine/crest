@@ -1,5 +1,6 @@
 {
  "name": "Hollow Triangle",
+ "category": "lead",
  "values": {
   "o1_wave": "Tri",
   "o1_shape": 0.3,

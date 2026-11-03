@@ -64,3 +64,6 @@ scripts/deploy.sh [host]      # staged install on a Move; scripts/logs.sh follow
 - Realtime: the audio thread does no I/O and no allocation. The Peak bank loader is a worker thread
   (`src/dsp/peak_bank.c`, the reason for `-lpthread`).
 - Effects were adapted from Amino's `src/dsp/fx.c`: a fix here may apply there too.
+- `src/web/presetbrowser.js`, `presetdrawer.js` and `presetbrowser.css` are byte-identical copies of
+  Amino's (the canonical ones): change Amino's, then copy. `src/web/patches.js` is Crest's side of it.
+  Categories are `CATEGORIES` in `tools/gen/params.py`; a factory patch names one in `"category"`.

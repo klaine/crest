@@ -384,7 +384,8 @@ def main():
             c = Conv(d)
             vals = c.run()
             lost.update(c.lost)
-            presets.append({"name": d["name"][:20] or "Unnamed", "values": vals})
+            cat = PM.PEAK_CATEGORIES[d["category"]] if d["category"] < len(PM.PEAK_CATEGORIES) else "other"
+            presets.append({"name": d["name"][:20] or "Unnamed", "category": cat, "values": vals})
         out_total += len(presets)
         if "--report" not in sys.argv:
             target = os.path.join(outdir, slug(path) + ".json")

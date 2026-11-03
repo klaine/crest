@@ -310,6 +310,17 @@ P("arp_scale", "Arp Scale", "Scale", "enum", 0, 0, "Off", opts=ARP_SCALES)
 #     (gen.py), this knob picks a patch of the loaded bank. Not saved: the patch itself is. -----------
 P("syx_patch", "Peak Patch", "Patch", "int", 0, 127, 0, state=False)
 
+# --- patch categories --------------------------------------------------------------------------
+# The browse categories, in the order Move's Category page and the Remote UI's chips list them (only
+# the ones the bank uses appear). A factory patch names its id in "category"; an imported Peak patch
+# gets the one its category byte (offset 32) stands for, Peak's own list of 0 None .. 14 Voc/Tune.
+CATEGORIES = [("init", "Init"), ("bass", "Bass"), ("lead", "Lead"), ("pad", "Pad"), ("keys", "Keys"),
+              ("poly", "Poly"), ("bell", "Bell"), ("strings", "Strings"), ("arp", "Arp"),
+              ("movement", "Movement"), ("sfx", "SFX"), ("drum", "Drum"), ("classic", "Classic"),
+              ("voice", "Voice"), ("other", "Other")]
+PEAK_CATEGORIES = ["other", "arp", "bass", "bell", "classic", "drum", "keys", "lead", "movement", "pad", "poly",
+                   "sfx", "strings", "other", "voice"]  # by byte; 13 is Peak's "User"
+
 # --- Move pages (ui_hierarchy) ----------------------------------------------------------------
 # knobs: list of key or (key, short_override). The root level doubles as the Main page.
 # (level id, label, knobs, extra) - extra holds the keys of a list level (knobs = []).

@@ -1,5 +1,6 @@
 {
  "name": "Noise Sweep",
+ "category": "sfx",
  "values": {
   "o1_wave": "Sine",
   "mx_o1": 0.0,

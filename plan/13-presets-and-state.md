@@ -38,6 +38,9 @@ The blob is flat JSON with string values, the same format as Amino's (`Developme
   - `preset_count` returns N.
   - `preset_name` returns the current name (**VERIFY** whether the host passes an index; Amino's implementation shows the convention).
   - Writing `preset` = i loads it.
+  - Categories (built): `pb_cats` lists All and each category the bank uses (`tools/gen/params.py` `CATEGORIES`, an
+    imported Peak patch's from its category byte), `pb_cat` picks one, and the Factory Patches page browses it through
+    `pb_index` and `pb_count`. None of them is in the state.
 - **v1 bank: 64 patches, 8 per category:**
 
 | # | Category | Character targets |

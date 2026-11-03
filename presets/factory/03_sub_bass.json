@@ -1,5 +1,6 @@
 {
  "name": "Sub Bass",
+ "category": "bass",
  "values": {
   "v_mode": "Mono",
   "v_glide": 0.25,

@@ -1,5 +1,6 @@
 {
  "name": "Lead Saw",
+ "category": "lead",
  "values": {
   "v_mode": "MonoLG",
   "v_glide": 0.18,
