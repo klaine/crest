@@ -40,12 +40,23 @@ debug log.
 
 The signal path is one voice of a classic hybrid polysynth, eight times over:
 
-```
-Osc 1 ──┐
-Osc 2 ──┤
-Osc 3 ──┼─ mix ─ Overdrive ─ Filter ─ Distortion ─ VCA ─┐
-Ring  ──┤                                               ├─ Distortion ─ Chorus, Delay, Reverb ─ out
-Noise ──┘                                 other voices ─┘
+```mermaid
+flowchart LR
+    subgraph voice [Each voice]
+        subgraph src [Sources]
+            direction TB
+            NOISE[Noise] -.->|FM| O1[Osc 1]
+            O1 -.->|FM| O2[Osc 2]
+            O2 -.->|FM| O3[Osc 3]
+            O3 -.->|FM| O1
+            O1 -.-> RING["Ring (Osc 1 × Osc 2)"]
+            O2 -.-> RING
+        end
+        src --> MIX[Mix] --> OD[Overdrive] --> F[Filter] --> VD[Distortion] --> VCA[VCA]
+        src -.->|"Filter FM (Osc 3, Noise)"| F
+    end
+    VCA --> SUM((All voices))
+    SUM --> DIST[Distortion] --> CDR["Chorus, Delay, Reverb (six orders or parallel)"] --> OUT([Out])
 ```
 
 Everything below is reachable from Move's parameter pages, and all of it from the Remote UI.
@@ -82,7 +93,7 @@ Envelope 1. A per-voice **distortion** comes after it.
 
 ### Effects
 
-A global stereo chain. Distortion comes first, then chorus, delay and reverb in any of seven
+A global stereo chain. Distortion comes first, then chorus, delay and reverb in any of six
 orders, or in parallel:
 
 | Effect | Types |
