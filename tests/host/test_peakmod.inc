@@ -415,6 +415,22 @@ static void test_peak_bank(void) {
     sp(h, "syx_file", "");
     for (int t = 0; t < 300 && peak_bank_count(I->slot) != 0; t++) wait_ms(h, 10);
     CHECK(peak_bank_count(I->slot) == 0, "an empty path empties the bank");
+    /* A state or factory patch loaded while the bank is still on its way stays: the knob's patch
+     * (still 9) doesn't replace it when the bank arrives. */
+    static char st[65536];
+    api->get_param(h, "state", st, sizeof st);
+    for (int k = 0; k < 2; k++) {
+        sp(h, "syx_file", path);
+        if (k == 0) sp(h, "state", st);
+        else sp(h, "preset", "4");
+        strcpy(before, I->name);
+        for (int t = 0; t < 300 && peak_bank_count(I->slot) == 0; t++) wait_ms(h, 10);
+        wait_ms(h, 50);
+        CHECK(peak_bank_count(I->slot) == 128 && strcmp(I->name, before) == 0 && I->syx_cur == -1,
+              "a %s loaded before its bank arrives stays (%s)", k ? "factory patch" : "state", I->name);
+        sp(h, "syx_file", "");
+        for (int t = 0; t < 300 && peak_bank_count(I->slot) != 0; t++) wait_ms(h, 10);
+    }
     api->destroy_instance(h);
 }
 

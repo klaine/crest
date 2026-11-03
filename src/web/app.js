@@ -97,7 +97,8 @@ function userBanks(ui) {
     });
     return st;
   };
-  let worker = null, wasm = null, onChange = () => {};
+  let worker = null, wasm = null, onChange = () => {}, lastId = 0;
+  const jobs = new Map(); // import id -> its reply handler: a bank's levels arrive after the next import began
   const api = {
     banks, state,
     set onChange(fn) { onChange = fn; },
@@ -109,12 +110,18 @@ function userBanks(ui) {
         if (!r.ok) throw new Error("crest.wasm: HTTP " + r.status);
         return r.arrayBuffer();
       });
-      worker = worker || new Worker(new URL("../engine/peak_worker.js", here));
+      if (!worker) {
+        worker = new Worker(new URL("../engine/peak_worker.js", here));
+        worker.onmessage = (e) => jobs.get(e.data.id)?.(e.data);
+        worker.onerror = (err) => {
+          for (const fn of [...jobs.values()]) fn({ t: "error", message: err.message || "the import worker failed" });
+        };
+      }
       return new Promise((resolve, reject) => {
+        const id = ++lastId;
         let bank = null, levelled = 0, timer = 0;
         const later = () => { clearTimeout(timer); timer = setTimeout(save, 500); };
-        worker.onmessage = (e) => {
-          const d = e.data;
+        jobs.set(id, (d) => {
           if (d.t === "bank") {
             const cats = meta.library.peakCategories;
             bank = { name: d.file.replace(/\.syx$/i, ""), patches: d.patches.map((p) => ({ name: p.name, cat: cats[p.category] || "", d: compact(p.values) })) };
@@ -127,15 +134,15 @@ function userBanks(ui) {
             bank.levelled = ++levelled;
             later();
             onChange();
-          } else if (d.t === "done") {
-            if (bank) { bank.levelled = bank.patches.length; save(); onChange(); }
-          } else if (d.t === "error") {
-            reject(new Error(d.message));
+          } else if (d.t === "done" || d.t === "error") {
+            jobs.delete(id);
+            // after an error mid-levelling the rest keep their converted level, and the status line clears
+            if (bank) { clearTimeout(timer); bank.levelled = bank.patches.length; save(); onChange(); }
+            if (d.t === "error") reject(new Error(d.message)); // no-op once the bank has resolved
           }
-        };
-        worker.onerror = (err) => reject(new Error(err.message || "the import worker failed"));
+        });
         const copy = wasm.slice(0); // the worker takes its own copy, the next import still has one
-        worker.postMessage({ t: "import", wasm: copy, bytes, file: file.name }, [copy, bytes]);
+        worker.postMessage({ t: "import", id, wasm: copy, bytes, file: file.name }, [copy, bytes]);
       });
     },
   };

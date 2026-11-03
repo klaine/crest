@@ -114,25 +114,36 @@
     return null;
   }
 
+  var noneAt = null; /* p.index when `preset` was first read as -1 (no factory patch is current) */
+
   function drawBrowser(ctx, o) {
     var W = ctx.width || 128, H = ctx.height || 40;
     var p = o.preset || {};
-    /* p.index and p.count are the position in the chosen category (pb_index, pb_count); the patch
-     * itself is `preset`, and pb_cat the category (0 = all patches, then META.cats in order). */
+    /* p.index and p.count are the position in the chosen category (pb_index, pb_count), which the
+     * host updates the moment the jog turns; pb_cat (0 = all patches, then META.cats in order) and
+     * `preset`, the absolute patch or -1 when the sound isn't a factory patch, arrive on the page's
+     * read rotation and lag the jog. */
     var values = o.values || {};
-    var cat = Math.round(val(values, "pb_cat", 0));
-    var index = Math.round(val(values, "preset", num(p.index) || 0));
-    var bk = bankOf(index);
-    var label, pos;
-    if (cat > 0 && META.cats && META.cats[cat - 1]) {
-      label = META.cats[cat - 1];
-      pos = ((num(p.index) || 0) + 1) + "/" + (num(p.count) || 0);
-    } else {
-      label = bk ? bk.b[0] : "Factory";
-      pos = bk ? (index - bk.b[1] + 1) + "/" + bk.b[2] : (index + 1) + "/" + (num(p.count) || 0);
-    }
     var count = 0;
     for (var b = 0; b < (META.banks || []).length; b++) count += META.banks[b][2];
+    var pcount = num(p.count) || 0, pi = num(p.index);
+    pi = pi === null ? -1 : Math.round(pi);
+    var cat = val(values, "pb_cat", null);
+    var all = cat === null ? pcount === count : Math.round(cat) <= 0; /* until pb_cat is read, the count tells */
+    var cur = val(values, "preset", null);
+    /* -1 stays true until the jog moves: then p.index is the patch, and `preset` just hasn't caught up */
+    if (cur !== null && cur < 0) { if (noneAt === null) noneAt = pi; } else noneAt = null;
+    var none = pi < 0 || (noneAt !== null && pi === noneAt);
+    var index = none ? -1 : all ? pi : cur === null ? -1 : Math.round(cur); /* absolute, for the bank and notch */
+    var bk = index >= 0 ? bankOf(index) : null;
+    var label, pos;
+    if (all) {
+      label = bk ? bk.b[0] : "Factory";
+      pos = bk ? (index - bk.b[1] + 1) + "/" + bk.b[2] : (none ? "-" : index + 1) + "/" + count;
+    } else {
+      label = cat !== null && META.cats ? META.cats[Math.round(cat) - 1] || "" : "";
+      pos = (none ? "-" : pi + 1) + "/" + pcount;
+    }
     ctx.print(0, 0, fit(ctx, label.toUpperCase(), W - tw(ctx, pos) - 4), 1);
     ctx.print(W - tw(ctx, pos), 0, pos, 1);
     ctx.fillRect(0, 9, W, 1, 1);
@@ -151,8 +162,7 @@
       if (bk && i === bk.i) ctx.fillRect(x0, sy, Math.max(1, x1 - x0 - 1), 3, 1);
       else ctx.fillRect(x0, sy + 1, Math.max(1, x1 - x0 - 1), 1, 1);
     }
-    var mx = Math.round(index / total * (W - 1));
-    ctx.fillRect(mx, sy - 3, 1, 2, 1);
+    if (index >= 0) ctx.fillRect(Math.round(index / total * (W - 1)), sy - 3, 1, 2, 1);
   }
 
   globalThis.canvas_overlay = {

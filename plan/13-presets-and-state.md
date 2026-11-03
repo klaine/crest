@@ -37,10 +37,12 @@ The blob is flat JSON with string values, the same format as Amino's (`Developme
 - **Browser keys.**
   - `preset_count` returns N.
   - `preset_name` returns the current name (**VERIFY** whether the host passes an index; Amino's implementation shows the convention).
-  - Writing `preset` = i loads it.
+  - Writing `preset` = i loads it. Reading it returns -1 when the sound isn't a factory patch (a state, My Presets, a
+    Peak bank patch). A `state` or `preset` load also cancels a Peak patch still waiting for its bank.
   - Categories (built): `pb_cats` lists All and each category the bank uses (`tools/gen/params.py` `CATEGORIES`, an
     imported Peak patch's from its category byte), `pb_cat` picks one, and the Factory Patches page browses it through
-    `pb_index` and `pb_count`. None of them is in the state.
+    `pb_index` and `pb_count`. None of them is in the state. With no factory patch current, or one outside the
+    category, the page shows `-/N` and no notch.
 - **v1 bank: 64 patches, 8 per category:**
 
 | # | Category | Character targets |

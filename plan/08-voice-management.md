@@ -26,8 +26,9 @@ When mode or unison changes while notes sound: release all voices with a 5 ms fa
 To start a note group of size U:
 1. **Reuse** (Poly only). If a group with the same note is active, retrigger those voices in place.
 2. **Idle voices.** Take idle voices, oldest `age` first.
-3. **Releasing voices.** Take releasing voices (gate off), lowest `amp_level` first.
-4. **Held voices.** Take held voices, oldest `age` first. Take whole groups when possible.
+3. **Fading voices.** Take voices already fading out with no note queued (after a hard all-off every voice fades), oldest first. Each takes its own note; a fading voice's old group-mates are left alone, since they may already hold another note of the same chord.
+4. **Releasing voices.** Take releasing voices (gate off), lowest `amp_level` first.
+5. **Held voices.** Take held voices, oldest `age` first. Take whole groups when possible.
 
 **Stealing a sounding voice:**
 - The voice gets `pending = {note, vel}` and a 64-sample (1.45 ms) linear fade-out of its current output. After the fade it re-initialises (filter and ADAA state cleared, phases per `osc_reset`) and starts the pending note.

@@ -16,6 +16,7 @@ typedef struct {
     uint32_t sph[4]; /* virtual-sync slave phases */
     float J[4];      /* output jump at the most recent sync reset (for the polyBLEP correction) */
     float pm_prev;   /* last phase-modulation offset (cycles), for the instantaneous increment */
+    uint8_t stail;   /* sync is off but a slave hasn't been reset back onto its master yet */
 } osc_t;
 
 /* Panel values for one sub-block; osc_render ramps from `a` (previous) to `b` (new). */

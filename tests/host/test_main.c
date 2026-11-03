@@ -651,6 +651,24 @@ static void test_voices(void) {
     midi(h, 0xB0, 120, 0);
     render(h, 2048, NULL, NULL);
     CHECK(active_voices(I) == 0, "all sound off");
+    /* The same after a unison-2 chord: the fading voices are still in pairs, and a note must not
+     * take its victim's fading partner, which already holds the previous note's queued start. */
+    spf(h, "v_unison", 2);
+    for (int n = 60; n < 64; n++) note_on(h, n, 100);
+    render(h, 1024, NULL, NULL);
+    spf(h, "v_unison", 1);
+    midi(h, 0xB0, 120, 0);
+    for (int n = 72; n < 76; n++) note_on(h, n, 100);
+    render(h, 2048, NULL, NULL);
+    held_chord = 0;
+    for (int i = 0; i < CREST_VOICES; i++)
+        if (I->voice[i].active && I->voice[i].gate && I->voice[i].note >= 72 && I->voice[i].note < 76) held_chord++;
+    CHECK(held_chord == 4, "chord after a unison-2 all-off keeps 4 notes, got %d", held_chord);
+    for (int n = 60; n < 64; n++) note_off(h, n);
+    for (int n = 72; n < 76; n++) note_off(h, n);
+    midi(h, 0xB0, 120, 0);
+    render(h, 2048, NULL, NULL);
+    CHECK(active_voices(I) == 0, "all sound off");
 
     /* Same key twice: Poly retriggers, Poly2 stacks. */
     note_on(h, 60, 100);

@@ -1,10 +1,13 @@
 /* Peak SysEx import for the browser build: a Web Worker running its own copy of crest.wasm, so
  * converting and levelling a bank never touches the audio thread.
  *
- *   in:  {t:"import", wasm: ArrayBuffer, bytes: ArrayBuffer, file}
- *   out: {t:"bank", file, patches:[{name, category, values: Float32Array}]}   right after conversion
- *        {t:"level", i, vol}                                         as each patch's loudness is solved
- *        {t:"done"} | {t:"error", message}
+ *   in:  {t:"import", id, wasm: ArrayBuffer, bytes: ArrayBuffer, file}
+ *   out: {t:"bank", id, file, patches:[{name, category, values: Float32Array}]}   right after conversion
+ *        {t:"level", id, i, vol}                                     as each patch's loudness is solved
+ *        {t:"done", id} | {t:"error", id, message}
+ *
+ * Imports run one after another; every reply carries its import's id, because the page has moved on
+ * to the next file by the time the last one's levels arrive.
  *
  * The conversion is src/dsp/peak_import.c (the same rules as the factory import, tools/peak) and the
  * loudness solve is src/dsp/level.c (the factory's): each patch renders 6 s offline. */
@@ -39,14 +42,14 @@ self.onmessage = async (e) => {
       patches.push({ name: readName(len), category: x.wa_syx_category(i),
         values: new Float32Array(x.memory.buffer, x.wa_vals(), np).slice() });
     }
-    self.postMessage({ t: "bank", file: d.file, patches });
+    self.postMessage({ t: "bank", id: d.id, file: d.file, patches });
     for (let i = 0; i < n; i++) {
       new Float32Array(x.memory.buffer, x.wa_vals(), np).set(patches[i].values);
       const vol = x.wa_level(1);
-      if (vol >= 0) self.postMessage({ t: "level", i, vol });
+      if (vol >= 0) self.postMessage({ t: "level", id: d.id, i, vol });
     }
-    self.postMessage({ t: "done" });
+    self.postMessage({ t: "done", id: d.id });
   } catch (err) {
-    self.postMessage({ t: "error", message: String((err && err.message) || err) });
+    self.postMessage({ t: "error", id: d.id, message: String((err && err.message) || err) });
   }
 };

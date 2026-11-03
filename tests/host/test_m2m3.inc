@@ -110,6 +110,26 @@ static void test_density_sync(void) {
     osc_block(&o3, y, FN, WAVE_SAW, 0, (float)(1046.5 / 44100.0), 0.0f, 0.0f, 0.25f);
     double al = alias_db(y, 1046.5);
     CHECK(al <= -20.0, "synced saw alias %.1f dB", al);
+    /* Sync switching on and off mid-cycle doesn't jump: the slave starts on the master's phase, and
+     * when sync goes off it runs on at ratio 1 until the next master cycle resets it there. A 200
+     * sample sine in 16 sample blocks: on at sample 768 (phase 0.84), off over 864..879 (0.32). */
+    {
+        osc_t os = {0};
+        float sw[1200];
+        oscp_t p0 = {WAVE_SINE, 0, 0, 0, 0.3f, 0}, p1 = p0;
+        p1.vsync = 0.3f;
+        for (int k = 0; k < 75; k++) {
+            const oscp_t *pa = k <= 48 ? &p0 : (k <= 54 ? &p1 : &p0);
+            const oscp_t *pb = k < 48 ? &p0 : (k < 54 ? &p1 : &p0);
+            osc_render(&os, sw + 16 * k, 16, 0.005f, 0.005f, pa, pb);
+        }
+        float on = 0, offs = 0;
+        for (int i = 760; i < 800; i++) on = fmaxf(on, fabsf(sw[i] - sw[i - 1]));
+        for (int i = 864; i < 996; i++) offs = fmaxf(offs, fabsf(sw[i] - sw[i - 1]));
+        CHECK(on < 0.15f, "sync onset is continuous (largest step %g)", (double)on);
+        CHECK(offs < 0.15f, "sync off is continuous until the next master cycle (largest step %g)", (double)offs);
+        CHECK(!os.stail && os.sph[0] == os.ph[0], "the slave is back on its master after that cycle");
+    }
     /* Changing wave type mid-stream crossfades instead of clicking. */
     osc_t o4 = {0};
     oscp_t pa = {WAVE_SAW, 0, 0, 0, 0.3f, 0}, pb = {WAVE_PULSE, 0, 0, 0, 0.3f, 0};

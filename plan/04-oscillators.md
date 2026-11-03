@@ -140,6 +140,7 @@ What this means:
 - **Phases.** The master phase `ph` runs at f0. The slave phase `sph` runs at r·f0 and resets to its fractional overshoot when `ph` wraps.
 - **Discontinuity.** The waveform is evaluated on `sph`. At each reset, apply a polyBLEP with the height of the output jump.
 - **No sync at 0.** At `vsync = 0` the slave equals the master, so no resets happen and the oscillator behaves normally.
+- **Switching.** While sync is off, `sph` follows `ph`, so sync starts without a jump. When it switches off, each slave runs on at ratio 1 until its master's next wrap resets it back onto the master (a polyBLEP'd edge), and only then does the oscillator read `ph` again.
 - **Shape and density.** Shape applies to the slave waveform. Density copies are synced to their own masters.
 
 ## 7. Noise

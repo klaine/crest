@@ -215,7 +215,10 @@ static void render_one(osc_t *o, int wave, int table, float *out, int n, float d
     float sh = a->shape, dsh = (b->shape - a->shape) / (float)n;
     float dn = a->dens, ddn = (b->dens - a->dens) / (float)n;
     float dvs = (b->vsync - a->vsync) / (float)n;
-    int sync = a->vsync > 0.001f || b->vsync > 0.001f;
+    int on = a->vsync > 0.001f || b->vsync > 0.001f;
+    /* When sync switches off, each slave runs on at ratio 1 until its next reset puts it back on its
+     * master, instead of the wave jumping from the slave's phase to the master's. */
+    int sync = on || o->stail;
     float rmax = exp2f(4.0f * (a->vsync > b->vsync ? a->vsync : b->vsync));
     float dtmax = dt0 > dt1 ? dt0 : dt1;
     wtc_t wt = {0, 0, 1, 0};
@@ -228,7 +231,7 @@ static void render_one(osc_t *o, int wave, int table, float *out, int n, float d
         for (int k = 0; k < 3; k++) ratio[k] = exp2f(OFF[k] * dd * (1.0f / 1200.0f));
     }
     /* Sync ratio 2^(4 vsync): vsync ramps linearly, so the ratio steps by a constant factor. */
-    float r = exp2f(4.0f * clampf(a->vsync, 0.0f, 1.0f)), rmul = exp2f(4.0f * dvs);
+    float r = on ? exp2f(4.0f * clampf(a->vsync, 0.0f, 1.0f)) : 1.0f, rmul = on ? exp2f(4.0f * dvs) : 1.0f;
     float pprev = o->pm_prev;
     for (int i = 0; i < n; i++) {
         float d = clampf(dt, 1e-6f, 0.49f);
@@ -242,6 +245,7 @@ static void render_one(osc_t *o, int wave, int table, float *out, int n, float d
                 float lv = clampf(dn * 3.0f - (float)k, 0.0f, 1.0f);
                 if (lv <= 0.001f) {
                     o->ph[k + 1] += (uint32_t)(d * ratio[k] * PH_SCALE);
+                    o->sph[k + 1] = o->ph[k + 1];
                     continue;
                 }
                 float dk = clampf(d * ratio[k], 1e-6f, 0.49f);
@@ -257,6 +261,18 @@ static void render_one(osc_t *o, int wave, int table, float *out, int n, float d
         r *= rmul;
     }
     o->pm_prev = pprev;
+    if (!sync) { /* the slaves follow their masters, so sync starts without a jump */
+        for (int u = 0; u < 4; u++) {
+            o->sph[u] = o->ph[u];
+            o->J[u] = 0.0f;
+        }
+    } else if (!on) { /* the tail ends once every slave is back on its master (float rounding aside) */
+        int off = 0;
+        for (int u = 0; u < (copies ? 4 : 1); u++) off |= o->sph[u] - o->ph[u] + 4096u > 8192u;
+        o->stail = (uint8_t)off;
+    } else {
+        o->stail = 1;
+    }
 }
 
 void osc_render_pm(osc_t *o, float *out, int n, float dt0, float dt1, const oscp_t *a, const oscp_t *b,
@@ -284,6 +300,7 @@ void osc_advance(osc_t *o, int n, float dt0, float dt1) {
     double cyc = (double)dt * (double)n;
     cyc -= floor(cyc); /* whole cycles don't move the phase; keeps the float-to-int cast in range */
     uint32_t step = (uint32_t)(cyc * 4294967296.0);
-    for (int u = 0; u < 4; u++) o->ph[u] += step;
+    for (int u = 0; u < 4; u++) o->sph[u] = o->ph[u] += step; /* muted: the slaves needn't keep their place */
+    o->stail = 0;
     o->pm_prev = 0.0f;
 }

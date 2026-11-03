@@ -125,6 +125,25 @@ for (const [w, h] of [[128, 40], [128, 34], [120, 44]]) {
     preset: { name: names[bass[1]], index: 1, count: bass.length, entered: true } });
   check(printed.includes("BASS") && printed.includes("2/" + bass.length), `browser ${w}x${h} in Bass reads BASS 2/${bass.length} (${printed.join(" | ")})`);
   check(br.outsideCount() === 0, `browser ${w}x${h} in a category draws inside its band`);
+  // a sound that isn't a factory patch (a set, My Presets, a Peak patch): `preset` reads -1 while
+  // pb_index still holds the patch loaded last, and the page shows no position until the jog moves
+  const page = (values, preset) => {
+    const c = makeCtx(w, h), out = [];
+    const pr = c.ctx.print;
+    c.ctx.print = (x, y, t, col) => { out.push(String(t)); pr(x, y, t, col); };
+    canvas.canvas_overlay.drawPage(c.ctx, { values, preset });
+    check(c.outsideCount() === 0, `browser ${w}x${h} draws inside its band (${out.join(" | ")})`);
+    return out;
+  };
+  let out = page({ preset: "-1" }, { name: "My Sound", index: 5, count: n, entered: true });
+  check(out.includes("-/" + n), `browser ${w}x${h} with no factory patch reads -/${n} (${out.join(" | ")})`);
+  out = page({ preset: "-1" }, { name: names[6], index: 6, count: n, entered: true }); // jogged; `preset` not read yet
+  check(out.includes("7/11") && !out.some((t) => t.startsWith("-/")), `browser ${w}x${h} follows the jog at once (${out.join(" | ")})`);
+  const outside = meta.library.presets.findIndex((p) => p.cat !== "bass");
+  out = page({ preset: String(outside), "synth:pb_cat": String(cat) }, { name: names[outside], index: -1, count: bass.length, entered: true });
+  check(out.includes("BASS") && out.includes("-/" + bass.length), `browser ${w}x${h} on a patch outside Bass reads BASS -/${bass.length} (${out.join(" | ")})`);
+  out = page({ preset: String(bass[1]) }, { name: names[bass[1]], index: 1, count: bass.length, entered: true }); // pb_cat not read yet
+  check(out.includes("2/" + bass.length) && !out.includes("CREST"), `browser ${w}x${h} before pb_cat is read counts in the category (${out.join(" | ")})`);
 }
 // a home page with no values at all (the first frame before any read answered)
 const empty = makeCtx(128, 40);

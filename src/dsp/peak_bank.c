@@ -60,8 +60,9 @@ typedef struct {
 
 static bank_t g_bank[CREST_MAX_INSTANCES];
 static const plugin_api_v2_t *g_api;
-static _Atomic int g_started;
-static _Atomic int g_stop; /* set when the library is unloaded: the worker must be gone before its code is */
+static _Atomic int g_started; /* set once, and never cleared while the worker can still run */
+static _Atomic int g_running; /* g_thread exists */
+static _Atomic int g_stop;    /* set when the library is unloaded: the worker must be gone before its code is */
 static pthread_t g_thread;
 
 static uint32_t fbits(float f) {
@@ -242,17 +243,18 @@ void peak_bank_start(const plugin_api_v2_t *api) {
     pthread_attr_t at;
     pthread_attr_init(&at);
     pthread_attr_setstacksize(&at, 256 * 1024);
-    atomic_store(&g_stop, 0);
-    if (pthread_create(&g_thread, &at, worker, NULL) != 0) atomic_store(&g_started, 0);
+    if (pthread_create(&g_thread, &at, worker, NULL) == 0) atomic_store(&g_running, 1);
+    else atomic_store(&g_started, 0); /* no worker: the next instance tries again */
     pthread_attr_destroy(&at);
 }
 
 /* The host unloads dsp.so (dlclose) when a project switch leaves no Crest on a track. A worker still
- * running then executes unmapped code and takes Move down, so join it before the library goes. */
+ * running then executes unmapped code and takes Move down, so join it before the library goes.
+ * g_started stays set: the worker claims the scratch instance for each level solve, and that claim
+ * must not start a second worker while this one is being joined. */
 __attribute__((destructor)) static void peak_bank_stop(void) {
-    if (!atomic_exchange(&g_started, 0)) return;
     atomic_store(&g_stop, 1);
-    pthread_join(g_thread, NULL);
+    if (atomic_load(&g_running)) pthread_join(g_thread, NULL);
 }
 
 #endif

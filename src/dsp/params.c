@@ -279,6 +279,7 @@ void preset_load_values(crest_inst_t *I, const float *v, const char *name) {
     I->name[sizeof I->name - 1] = 0;
     I->preset_idx = -1;
     I->syx_cur = -1;
+    I->syx_pend = 0; /* a bank still loading doesn't replace this patch when it arrives */
     voice_all_off(I, 1);
     fx_reset(&I->fx);
     params_prepare(I);
@@ -445,6 +446,8 @@ static int state_load(crest_inst_t *I, const char *s) {
         if (CREST_PARAMS[i].flags & PF_STATE) I->v[i] = nv[i];
     memcpy(I->name, name, sizeof name);
     I->preset_idx = -1;
+    I->syx_cur = -1;  /* not a bank patch any more: its solved loudness mustn't override patch_vol */
+    I->syx_pend = 0;  /* nor may a bank still loading replace the restored sound */
     proxies_refresh(I);
     voice_all_off(I, 1);
     fx_reset(&I->fx);
@@ -571,7 +574,7 @@ int params_get(crest_inst_t *I, const char *key, char *buf, int buf_len) {
     if (strcmp(key, "mm_items") == 0) return items_matrix(I, buf, buf_len);
     if (strcmp(key, "mac_items") == 0) return items_macros(I, buf, buf_len);
     if (strcmp(key, "preset") == 0) {
-        int n = snprintf(buf, (size_t)buf_len, "%d", I->preset_idx < 0 ? 0 : I->preset_idx);
+        int n = snprintf(buf, (size_t)buf_len, "%d", I->preset_idx); /* -1: not a factory patch */
         return n >= buf_len ? -1 : n;
     }
     if (strcmp(key, "preset_count") == 0) {

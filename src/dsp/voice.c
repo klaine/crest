@@ -60,6 +60,7 @@ static void voice_start(crest_inst_t *I, voice_t *v, int note, int vel, int fres
         for (int o = 0; o < 3; o++) {
             v->osc[o].ph[0] = bp->osc_reset ? 0u : rng_u32(&v->rng);
             for (int u = 1; u < 4; u++) v->osc[o].ph[u] = rng_u32(&v->rng); /* density copies: random */
+            for (int u = 0; u < 4; u++) v->osc[o].sph[u] = v->osc[o].ph[u]; /* sync starts on the master */
         }
         for (int o = 0; o < 3; o++) v->dvg[o] = rng_bi(&v->rng);
         v->fdvg = rng_bi(&v->rng);
@@ -122,12 +123,19 @@ static int in_alloc(const alloc_t *A, int i) {
     return 0;
 }
 
-/* Best voice to take: the quietest releasing one, else the oldest held one, else the oldest of
- * those already fading, preferring one with no note queued on it. Every voice fades after a hard
- * all-off (a preset or state load, CC 120, a voice-mode change), and a chord played during that fade
- * must queue one note per voice: picking the same oldest voice again would overwrite its queued note. */
+/* Best voice to take: the oldest one already fading with no note queued on it (silent in a moment),
+ * else the quietest releasing one, else the oldest held one, else the oldest fading one. Every voice
+ * fades after a hard all-off (a preset or state load, CC 120, a voice-mode change), and a chord played
+ * during that fade must queue one note per voice: picking the same oldest voice again would overwrite
+ * its queued note. */
 static int pick_victim(crest_inst_t *I, const alloc_t *A) {
     int best = -1;
+    for (int i = 0; i < CREST_VOICES; i++) {
+        voice_t *v = &I->voice[i];
+        if (!v->active || in_alloc(A, i) || !v->fading || v->pend) continue;
+        if (best < 0 || v->age < I->voice[best].age) best = i;
+    }
+    if (best >= 0) return best;
     for (int i = 0; i < CREST_VOICES; i++) {
         voice_t *v = &I->voice[i];
         if (!v->active || in_alloc(A, i) || v->fading || v->gate || v->sustained) continue;
@@ -140,12 +148,11 @@ static int pick_victim(crest_inst_t *I, const alloc_t *A) {
         if (best < 0 || v->age < I->voice[best].age) best = i;
     }
     if (best >= 0) return best;
-    for (int pass = 0; pass < 2 && best < 0; pass++)
-        for (int i = 0; i < CREST_VOICES; i++) {
-            voice_t *v = &I->voice[i];
-            if (!v->active || in_alloc(A, i) || (pass == 0 && v->pend)) continue;
-            if (best < 0 || v->age < I->voice[best].age) best = i;
-        }
+    for (int i = 0; i < CREST_VOICES; i++) { /* every voice fading with a note queued: more notes than voices */
+        voice_t *v = &I->voice[i];
+        if (!v->active || in_alloc(A, i)) continue;
+        if (best < 0 || v->age < I->voice[best].age) best = i;
+    }
     return best;
 }
 
@@ -163,7 +170,9 @@ static void alloc_group(crest_inst_t *I, int U, alloc_t *A) {
         uint32_t gid = I->voice[vi].group;
         for (int i = 0; i < CREST_VOICES; i++) {
             voice_t *w = &I->voice[i];
-            if (!w->active || in_alloc(A, i) || (i != vi && w->group != gid)) continue;
+            /* A fading group-mate is already going, and may carry another note's queued start
+             * (its group still names the old note until that start): leave it alone. */
+            if (!w->active || in_alloc(A, i) || (i != vi && (w->group != gid || w->fading))) continue;
             if (A->n < U) {
                 A->idx[A->n] = i;
                 A->steal[A->n++] = 1;
