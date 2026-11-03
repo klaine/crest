@@ -1,140 +1,247 @@
 # Crest
 
-An 8-voice hybrid polysynth for Ableton Move, delivered as a [Schwung](https://github.com/charlesvestal/schwung)
-sound-generator module. Three band-limited oscillators, a multimode saturating filter, three envelopes
-and a Distortion / Chorus / Delay / Reverb chain, all on the Move's encoder pages.
+Crest is an 8-voice hybrid polysynth for [Ableton Move](https://www.ableton.com/move/), running
+as a sound-generator module in [Schwung](https://github.com/charlesvestal/schwung). Three
+band-limited oscillators with wavetables and FM, a saturating multimode filter, three envelopes,
+four LFOs, a 20-slot modulation matrix, eight macros, an arpeggiator and a Distortion, Chorus,
+Delay and Reverb chain, all playable from Move's knobs and pads.
 
-**Try it live:** [play Crest in your browser](https://klaine.github.io/crest/) (WebAssembly build, WebMIDI).
+- **Play it in your browser:** <https://klaine.github.io/crest/> (the same DSP compiled to
+  WebAssembly, with WebMIDI)
+- **Download for Move:** [latest release](https://github.com/klaine/crest/releases/latest)
+- **Every page and knob:** [plan/11-parameter-reference.md](plan/11-parameter-reference.md)
+- **The spec and what is built:** [plan/README.md](plan/README.md) and
+  [plan/17-implementation-status.md](plan/17-implementation-status.md)
+- **What changed:** [release notes](https://github.com/klaine/crest/releases)
 
-Status: **milestones M0-M4 of `plan/` plus the web UI**. It builds, passes its test suite and has a
-release-style package, and it runs on a Move. See
-[plan/17-implementation-status.md](plan/17-implementation-status.md) for what is done and what is not.
+Crest is inspired by classic hybrid polysynths. It is not affiliated with any synth maker, and
+its wavetables, arpeggiator rhythms and factory patches are its own. It can convert Novation Peak
+SysEx banks that you have (see [Patches](#patches)), but it ships none, and no Peak patch is in
+this repository; see [Third-party preset banks](#third-party-preset-banks).
 
-## Features
-- **Voices:** 8, modes Poly / Poly2 / Mono / MonoLG / Mono2, unison up to 8, glide, divergence, analog drift.
-- **Oscillators (x3):** Sine, Tri, Saw, Pulse with Shape, 75 wavetables (17 Crest originals plus one for every Novation
-  Peak wavetable name, designed for Crest), density stacks, virtual sync,
-  fixed-note mode, polyBLEP anti-aliasing (2-point default, 4-point build option).
-- **FM:** Osc1>Osc2, Osc2>Osc3, Osc3>Osc1 and Noise>Osc1 phase modulation; Osc 3 and noise into the cutoff.
-- **Mixer and filter:** three oscillators, ring, coloured noise, pre-overdrive and post-distortion;
-  LP24 / LP12 / BP12 / BP6 / HP24 / HP12 with resonance up to self-oscillation and in-loop drive.
-- **Modulation:** 3 delay-AHDSR envelopes with repeats and legato/retrigger modes; 4 LFOs (1-2 per voice
-  with Low/High ranges, 3-4 global) with the Peak's sync table, repeats, four fade modes, slew and Common
-  modes; a 20-slot matrix (33 sources, 59 destinations), 8 macros, Animate 1-2. LFOs run at control rate,
-  so free rates are capped at 1.24 kHz.
-- **Arpeggiator:** 7 modes, 19 rates, 33 rhythms, 1-6 octaves, gate, swing, latch, key sync, host tempo.
-- **Effects:** distortion, chorus, tempo-synced delay and reverb, in any of 7 routings with dry/wet.
-- **11 factory patches:** Init Saw and 10 curated, full state save and recall. Peak banks are not bundled:
-  load your own (below), or build them into a local factory set.
-- **On the Move:** a home page drawing the filter and amp envelope, a patch browser that steps through
-  the category picked on the Patch Category page (Bass, Lead, Pad and so on, Peak patches included), and cards
-  that show held knobs in real units (ms, Hz, semitones, note names) with a picture where it helps
-  (`src/canvas.js`, `src/cards.js`).
-- **Your own Peak banks:** load a Novation Peak `.syx` bank or patch in the browser build (Patches → Load Peak
-  .syx…) or, on the Move, open one from `UserLibrary/Crest` on the Peak Banks page. Both convert it with the same rules
-  as the built-in banks and set each patch's loudness in the background (see
-  [plan/18-peak-import.md](plan/18-peak-import.md)).
-- **Web UI:** a Peak-style panel for every parameter (`src/web_ui.html`, `src/web/`). On a Move it opens in
-  Schwung's Remote UI; standalone it runs the same engine as WebAssembly with an on-screen keyboard,
-  computer-keyboard play, Web MIDI, mod and bend strips, a patch browser (categories shared with the Move's
-  page, banks, favourites, search; shared with Amino and Bizar), undo, and patch save/load.
+## Installing on Move
 
-## Build and test
-Needs [zig](https://ziglang.org) (`brew install zig`) and python3. Zig is the only C compiler used.
+Crest needs a Move with [Schwung](https://github.com/charlesvestal/schwung) installed.
 
-```sh
-scripts/build.sh            # codegen check, contract, ~9,600 native checks, UI tests, aarch64 dsp.so, package
-scripts/build.sh --bench    # also a native CPU benchmark
-scripts/build.sh --profile  # dsp.so with the cpu_us debug key (for measuring on the Move)
-scripts/build.sh --release  # a package to publish: no local Peak banks, checked by scripts/check_release.py
-CREST_BLEP_POINTS=4 scripts/build.sh   # 4-point polyBLEP variant
-python3 tools/gen/gen.py    # regenerate params / contract / presets after editing tools/gen/params.py
+1. Download `crest-module.tar.gz` from the
+   [latest release](https://github.com/klaine/crest/releases/latest).
+2. Install it with Schwung Manager, or by hand: extract the archive so that it lands at
+   `/data/UserData/schwung/modules/sound_generators/crest/` on the Move.
+3. Rescan modules in Schwung Manager, or restart Schwung.
+
+Crest then appears under Sound Generators as **CRST**.
+
+Developers with SSH access (add a key at `http://move.local/development/ssh`) can install a local
+build with `scripts/deploy.sh [host]`. It stages the package on the Move's data partition and
+renames it into place, so a running Schwung is not disturbed. `scripts/logs.sh` follows Schwung's
+debug log.
+
+## How it works
+
+The signal path is one voice of a classic hybrid polysynth, eight times over:
+
+```
+Osc 1 ──┐
+Osc 2 ──┤
+Osc 3 ──┼─ mix ─ Overdrive ─ Filter ─ Distortion ─ VCA ─┐
+Ring  ──┤                                               ├─ Distortion ─ Chorus, Delay, Reverb ─ out
+Noise ──┘                                 other voices ─┘
 ```
 
-Output: `modules/sound_generators/crest/dsp.so`, `crest-module.tar.gz` and `build/crest.html` (below).
+Everything below is reachable from Move's parameter pages, and all of it from the Remote UI.
 
-Listen without a Move: `scripts/build.sh --render` writes one WAV per factory patch to `build/demo`.
+### Oscillators
 
-Play it in a browser:
+Each of the three oscillators plays **Sine**, **Tri**, **Saw** or **Pulse** with a **Shape**
+control, or one of **75 wavetables** (17 original tables plus 58 more, all designed for Crest).
+The classic waves are anti-aliased with polyBLEP. Each oscillator also has **density** stacks of
+detuned copies, **virtual sync**, a fixed-note mode, and coarse and fine tuning.
 
-```sh
-scripts/build_web.sh                          # crest.wasm + build/site
-python3 -m http.server -d build/site 8765     # then open http://localhost:8765
-```
+**FM** runs Osc 1 into Osc 2, Osc 2 into Osc 3, Osc 3 into Osc 1 and noise into Osc 1 as phase
+modulation, and Osc 3 and noise can modulate the cutoff.
 
-To share it, send `build/crest.html` (about 7 MB, made by `scripts/build.sh` and
-`scripts/build_web.sh`). It's the whole synth in one file that opens from disk, with no server. It
-has only the Crest patches, even when your local build has Peak banks built in, but loading your own
-Peak `.syx` still works. The build also puts it on the `pages` branch as `index.html` for GitHub Pages;
-`scripts/pages.sh --push` publishes it.
+### Mixer, filter and drive
 
-Preview the on-device cards and pages as PNGs: `node tests/device/test_device_ui.mjs --png build/device_preview`.
+The mixer blends the three oscillators, a ring modulator and coloured noise, into an
+**overdrive** before the filter. The **filter** has LP24, LP12, BP12, BP6, HP24 and HP12 modes,
+resonance up to self-oscillation and drive inside its loop, and follows key, velocity and Mod
+Envelope 1. A per-voice **distortion** comes after it.
 
-## Release
-Bump `version` in `src/module.json` (the only version string) and commit it, then:
+### Envelopes and modulation
 
-```sh
-scripts/build.sh --release
-gh release create v0.1.0 crest-module.tar.gz --title "Crest 0.1.0" --generate-notes
-scripts/build.sh            # rebuild your own package with the local Peak banks again
-```
+- **Three envelopes** (Amp, Mod 1 and Mod 2), each with a delay stage, repeats, and legato or
+  retrigger modes.
+- **Four LFOs**: LFO 1 and 2 run per voice with Low and High ranges, LFO 3 and 4 are global.
+  Eight shapes, tempo sync, repeats, four fade modes (fade in or out, gate in or out), slew, and
+  a common mode that keeps every voice in step.
+- **Modulation matrix** of 20 slots, from 32 sources (the envelopes and LFOs, velocity, key,
+  random, wheel, aftertouch, breath, expression, sustain, bend, the macros, Animate) to 59
+  destinations.
+- **Eight macros**, each driving its own destinations, and **Animate 1 and 2**, switches that bring
+  in modulation for performance (MIDI CC 80 and 81 can hold or latch them).
 
-`--release` leaves `presets/peak/` out of `dsp.so` and the package, then checks the tarball: only the
-Crest bank in its tables, no Peak patch name in any file (`dsp.so` included), no build paths and no
-macOS metadata. It fails rather than packaging otherwise.
+### Effects
 
-## Install on a Move
-Add an SSH key at `http://move.local/development/ssh`, then:
+A global stereo chain. Distortion comes first, then chorus, delay and reverb in any of seven
+orders, or in parallel:
 
-```sh
-scripts/deploy.sh            # stages the package on move.local and renames it into place
-scripts/logs.sh              # follows Schwung's debug log
-```
+| Effect | Types |
+|---|---|
+| Distortion | Soft, Hard, Fold, Crush |
+| Chorus | Chorus 1, Chorus 2, Ensemble |
+| Delay | Stereo, Ping-Pong, Mono, free or synced to the tempo |
+| Reverb | Room, Hall, Plate |
 
-## Peak banks
-Novation offers Peak patch banks as `.syx` downloads at <https://components.novationmusic.com/peak/banks/>.
-Crest converts them with the same rules as its built-in banks ([plan/18](plan/18-peak-import.md)), in three ways:
+### Voices and playing
 
-- **On the Move, no rebuild.** Copy the `.syx` files to `/data/UserData/UserLibrary/Crest` (subfolders are fine),
-  then on the *Peak Banks* page pick a file with *Peak Bank* and a patch with *Peak Patch*. Each patch's loudness
-  is levelled in the background after the bank loads.
+Eight voices in Poly, Poly2, Mono, MonoLG or Mono2 mode, unison up to eight voices per note with
+detune and spread, glide, and per-voice **divergence** and analog **drift**. Crest responds to
+velocity, pitch bend, channel and polyphonic aftertouch, the mod wheel, breath, expression and
+the sustain pedal.
 
-  ```sh
+### Arpeggiator
+
+Clocked from Move's tempo: seven modes (Up, Down, UpDown, UpDown2, Played, Random, Chord), 19
+rates, 33 rhythms, one to six octaves, gate, swing, latch and key sync. **Scale** locks the held
+keys to a scale: Set follows the Move set's root and scale, or pick a fixed one.
+
+### Patches
+
+Crest has 11 factory patches: Init Saw and ten more. Each has a category (Bass, Lead, Pad, Keys,
+Poly, Bell, Strings, Arp, Movement, SFX and more), and the browsers on Move and in the Remote UI
+step through one category at a time.
+
+You can also load **Novation Peak banks you have** (`.syx` files, such as the ones Novation
+offers at <https://components.novationmusic.com/peak/banks/>). Crest converts each patch with the
+rules in [plan/18](plan/18-peak-import.md), gives it a category, and levels its loudness in the
+background:
+
+- **On Move:** copy the `.syx` files to `/data/UserData/UserLibrary/Crest` (subfolders are fine),
+  then on the **Peak Banks** page pick a file with Peak Bank and a patch with Peak Patch.
+
+  ```bash
   ssh -4 move.local 'mkdir -p /data/UserData/UserLibrary/Crest'
   scp -4 *.syx move.local:/data/UserData/UserLibrary/Crest/
   ```
-- **In the browser build.** Patches → *Load Peak .syx…*; the bank is kept in the browser's storage.
-- **Built into your own factory set, locally.** Put the files in `reference_novation/` and run the pipeline in
-  [plan/18](plan/18-peak-import.md#pipeline): `tools/peak/import_banks.py`, the loudness pass
-  (`tools/peak/level.py`), `tools/gen/gen.py`, then `scripts/build.sh`. The converted banks land in
-  `presets/peak/`, and `gen.py` writes the bank sources that include them to `build/peak/`, which the build
-  compiles into your `dsp.so`, package and `build/site` in place of the committed Crest-only ones. None of it
-  is committed. `tests/peak/test_import.py` checks the counts of the author's set (8 banks, 529 unique
-  patches), so update those numbers when you import different banks.
 
-## Layout
+- **In the browser:** Patches → **Load Peak .syx…**. The bank stays in the browser's storage.
+
+## On Move
+
+Crest opens on a home page that draws the patch name, the filter response and the amp envelope.
+Its parameter pages, in order: Factory Patches (it steps through the category that the next page,
+Patch Category, picks), Patch Category, Perform, Macros, Oscillator 1 to 3 (each with a
+Modulation page), Mixer, Filter, Amp Envelope, Mod Envelope 1 and 2, Envelope Delays, LFO 1 and 2
+(each with a Fade page), LFO 3, LFO 4, Mod Matrix, Matrix Slot, Macro Routing, Macro Edit, FM and
+Filter FM, Voice Character, Arpeggiator, Voice, FX Routing, Distortion, Chorus, Delay, Reverb and
+Peak Banks. A knob you hold shows a card with its value in real units (ms, Hz, semitones, note
+names) and a picture where it helps. [plan/11](plan/11-parameter-reference.md) lists every
+parameter with its range and default.
+
+Patches are saved and automated through Schwung like any other module. The **Remote UI**, served
+by Schwung in a browser, shows every parameter on one hardware-style panel, including the ones
+Move's pages have no room for, with the patch on a drawn screen, the full modulation matrix and
+macro routing, undo and redo, saving a patch to a file and loading it back, and a patch browser
+with categories, banks, favourites and search.
+
+## Playing in the browser
+
+<https://klaine.github.io/crest/> is the whole synth as a single page: the Remote UI plus the
+same DSP compiled to WebAssembly. Click **Start Crest**, then play from a WebMIDI device (Chrome
+or Edge), from the computer keyboard (the A row plays the white keys, W E T Y U O P the black ones, Z
+and X shift octaves), or from the on-screen keyboard with its velocity slider and mod wheel and
+pitch bend strips. Your patch and any banks you load are kept in the browser.
+
+## Building from source
+
+Requirements: [zig](https://ziglang.org/) (`brew install zig`), the only C compiler the build
+uses, and Python 3.
+
+```bash
+scripts/build.sh
 ```
-plan/                  specification and roadmap (start with plan/README.md)
-src/module.json help.json
-src/cards.js canvas.js  on-device knob cards and pages (Schwung card_script / canvas)
-src/web_ui.html src/web/ the web UI (Remote UI on a Move, or standalone with web/ and crest.wasm)
-web/                   the browser engine host: wasm_host.c, AudioWorklet, engine.js, embed.js (single file)
-src/dsp/               the plugin: crest.c (entry, MIDI, render), voice.c, osc.c, filter.c, env.c, fx.c, params.c
-src/dsp/*_gen.*        generated by tools/gen (do not edit)
-tools/gen/params.py    every parameter, enum and Move page in one place
-presets/factory/*.json factory patches (only the keys that differ from INIT)
-presets/peak/*.json    patches converted from your Peak SysEx banks (tools/peak/; local, not committed)
-tests/                 contract validator, native tests / benchmark / WAV renderer, device and web UI tests
-scripts/               build, deploy, symbol check
+
+This runs the generator check, the contract, UI and about 10,500 native tests, then writes
+`modules/sound_generators/crest/dsp.so`, `crest-module.tar.gz` and `build/crest.html`.
+
+Other targets:
+
+```bash
+scripts/build.sh --gen                   # regenerate first, after editing tools/gen/params.py or presets
+scripts/build.sh --render                # also one WAV per factory patch in build/demo
+scripts/build.sh --bench                 # also a native CPU benchmark
+scripts/build.sh --profile               # dsp.so with a read-only cpu_us key (render time)
+scripts/build.sh --release               # a package to publish (below)
+scripts/build_web.sh                     # browser build in build/site; serve it with python3 -m http.server -d build/site 8765
+scripts/deploy.sh [host]                 # install the build on a Move over SSH
+CREST_BLEP_POINTS=4 scripts/build.sh     # 4-point polyBLEP variant
 ```
 
-## Third-party preset banks
-Crest doesn't ship any Peak banks: Novation's factory banks and the community banks have their own
-authors, and their redistribution rights are unclear. `reference_novation/`, `presets/peak/` and
-`build/peak/` stay local and git-ignored (the Peak import tests skip without them). A package built
-with them is for your own Move; get the authors' consent before sharing it, or remove `presets/peak/`
-and rebuild.
+`build/crest.html` is the browser synth as one file (about 7 MB) that opens from disk, the same
+page that GitHub Pages serves. It only ever holds the Crest patches, and loading your own banks
+still works in it. `node tests/device/test_device_ui.mjs --png build/device_preview` renders the
+on-device pages and cards as PNGs.
 
-## Licence
-MIT. The effect algorithms are adapted from Amino (MIT), by the same author. Schwung's API header and
-set-info reader are MIT too: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+`tools/gen/params.py` defines every parameter and Move page, and `gen.py` writes the C tables,
+contract and factory bank from it; the build fails if any of them is stale. A package to publish
+is built with `scripts/build.sh --release`, which leaves local Peak banks out and then checks the
+tarball: only the Crest patches, no Peak patch name in any file (`dsp.so` included), no build
+paths and no macOS metadata. Run `scripts/build.sh` afterwards to get your own package back. See
+[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+### Building Peak banks into your own build
+
+Put the `.syx` files in `reference_novation/` and run the pipeline in
+[plan/18](plan/18-peak-import.md#pipeline): `tools/peak/import_banks.py`, the loudness pass
+`tools/peak/level.py`, `tools/gen/gen.py`, then `scripts/build.sh`. The converted banks land in
+`presets/peak/`, and `gen.py` writes bank sources that include them to `build/peak/`, which the
+build compiles into your `dsp.so`, package and `build/site` in place of the committed Crest-only
+ones. `tests/peak/test_import.py` checks the counts of the author's set (8 banks, 529 unique
+patches), so update those numbers when you import other banks.
+
+### Third-party preset banks
+
+Novation's factory banks and the community banks have their own authors, and their
+redistribution rights are unclear. `reference_novation/`, `presets/peak/` and `build/peak/` stay
+local and git-ignored (the Peak import tests skip without them). A package built with them is for
+your own Move: get the authors' consent before sharing it, or build it with `--release`.
+
+## Status
+
+Crest is a beta. It runs on Move, Peak bank loading included. Known gaps:
+
+- Only 11 factory patches so far. A curated set of 64 is planned.
+- No reverb freeze.
+- Move's parameter list is full, so a few parameters are in the Remote UI only: LFO fade sync,
+  LFO 3 and 4 repeats and fade mode, delay slew, ratio and width, chorus and reverb EQ, and reverb
+  modulation.
+- Not every on-device page and card has been checked on hardware one by one; see
+  [plan/17](plan/17-implementation-status.md).
+
+Bug reports and ideas are welcome as [issues](https://github.com/klaine/crest/issues).
+
+## Project layout
+
+| Path | Contents |
+|---|---|
+| `src/dsp/` | The plugin: `crest.c` (entry, MIDI, render), `voice.c`, `osc.c`, `filter.c`, `env.c`, `fx.c`, `params.c`, the Peak converter and bank loader (`*_gen.*` are generated) |
+| `src/module.json`, `help.json`, `cards.js`, `canvas.js` | Manifest and on-device UI: knob cards and drawn pages |
+| `src/web_ui.html`, `src/web/` | Remote UI, also the standalone browser synth's UI |
+| `web/` | Browser build: WebAssembly host, AudioWorklet, Peak import worker, single-file loader |
+| `tools/gen/` | `params.py` (every parameter, enum and Move page) and `gen.py` |
+| `tools/peak/` | Peak SysEx converter and loudness pass |
+| `presets/factory/` | Factory patches as JSON (only the keys that differ from Init) |
+| `presets/peak/` | Patches converted from your Peak banks (local, not committed) |
+| `tests/` | Contract validator, native tests, benchmark, WAV renderer, Peak import, device and web UI tests |
+| `scripts/` | Build, release check, deploy, Pages |
+| `plan/` | Specification, status and roadmap (start with [plan/README.md](plan/README.md)) |
+
+The module does no file I/O and no heap allocation on the audio thread; Peak banks load on a
+worker thread.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The effects are adapted from Amino (MIT), by the same author.
+Schwung's API header and set-info reader are MIT too; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Schwung and Ableton Move are separate projects
+under their own licenses.
