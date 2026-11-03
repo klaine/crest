@@ -9,7 +9,8 @@ README) or of the build machine:
     Init Saw plus presets/factory,
   * no file, dsp.so included, contains a patch name that only the Peak banks have (needs the local
     presets/peak to know the names; without it this part is skipped, and the bank check still runs),
-  * no file contains a build path, and there are no .DS_Store or ._ AppleDouble entries.
+  * no file contains a build path, and there are no .DS_Store or ._ AppleDouble entries,
+  * no header names the builder's user or group, or carries extended attributes.
 """
 import glob
 import json
@@ -32,6 +33,9 @@ def main():
         for m in tar.getmembers():
             base = os.path.basename(m.name)
             assert base != ".DS_Store" and not base.startswith("._"), "macOS metadata in the package: " + m.name
+            assert not m.uname and not m.gname, "owner %s:%s in the header of %s" % (m.uname, m.gname, m.name)
+            xattrs = [k for k in m.pax_headers if "xattr" in k.lower()]
+            assert not xattrs, "extended attributes %s on %s" % (xattrs, m.name)
             if m.isfile():
                 files[m.name] = tar.extractfile(m).read()
 

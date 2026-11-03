@@ -134,8 +134,9 @@ if [ "$RENDER" = 1 ]; then
 fi
 
 echo "== dsp.so (aarch64-linux-gnu)"
+# -ffile-prefix-map: no absolute build paths (and so no user name) in shipped binaries.
 "$ZIG" cc -target aarch64-linux-gnu.2.28 -mcpu=cortex_a72 -std=c11 -O2 $WARN $MATH $DEFS \
-  -fPIC -shared -fvisibility=hidden -s -I src/dsp \
+  -fPIC -shared -fvisibility=hidden -s -ffile-prefix-map="$ROOT"=. -I src/dsp \
   -o "$MODULE/dsp.so" $DSP_SRC -lm -lpthread -ldl -lrt  # pthread: the Peak bank worker; dl, rt: move_info.h (glibc 2.28 keeps them apart)
 rm -f "$MODULE/dsp.so.o"
 
@@ -149,9 +150,10 @@ mkdir -p "$MODULE/assets/ui"
 cp src/web/*.js src/web/*.css build/ui/ui_meta.json build/ui/ui_presets.json "$MODULE/assets/ui/"
 
 echo "== package"
-# COPYFILE_DISABLE keeps macOS tar from adding ._ AppleDouble files
-COPYFILE_DISABLE=1 tar -czf "$ROOT/crest-module.tar.gz" --exclude '.DS_Store' --exclude '.gitkeep' \
-  -C "$ROOT/modules/sound_generators" crest
+# COPYFILE_DISABLE keeps macOS tar from adding ._ AppleDouble files; --numeric-owner leaves the
+# builder's user and group names out of the headers, --no-xattrs the com.apple.* attributes
+COPYFILE_DISABLE=1 tar -czf "$ROOT/crest-module.tar.gz" --numeric-owner --no-xattrs \
+  --exclude '.DS_Store' --exclude '.gitkeep' -C "$ROOT/modules/sound_generators" crest
 if [ "$RELEASE" = 1 ]; then
   echo "== check release package"
   "$PY" scripts/check_release.py "$ROOT/crest-module.tar.gz"
